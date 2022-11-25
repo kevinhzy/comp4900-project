@@ -6,6 +6,8 @@
 #include <time.h>
 #include <stdlib.h>
 
+#include <constants.h>
+
 /*
  * Global variables for determining light alternation timing.
 */
@@ -79,14 +81,30 @@ void *north_south(void *arg)
 
 void *grabber(void *arg)
 {
-    // Seeding random for example purposes.
-    srand(time(NULL));
+	// Aquire connection id from the server's name.
+	int coid = name_open(CTRL_SERVER_NAME, 0);
+
+	get_prio_msg_t prio_msg = {.type = GET_PRIO_MSG_TYPE};
+	traffic_count_msg traffic_msg = {.type = TRAFFIC_COUNT_MSG_TYPE, .count = 0};
+	get_prio_resp_t prio_resp;
+
+	// Send request to block controller asking for a priority.
+	MsgSend(coid, &prio_msg, sizeof(prio_msg), &prio_resp, sizeof(prio_resp));
+	// Set the priority to the value obtained from the block controller.
+	priority = prio_resp.priority;
 
     while(1){
         pthread_mutex_lock(&mutex);
-        // Request new priority from block controller via messaging.
-        // For example purposes, assign it a random number between 1 and 4 (inclusive).
-        priority = (rand() % 4) + 1;
+
+        // Obtain traffic count info somehow...
+        traffic_msg.count = 8;
+
+        // Send traffic count to block controller and receive back a priority.
+        MsgSend(coid, &traffic_msg, sizeof(traffic_msg), &prio_resp, sizeof(prio_resp));
+        priority = prio_resp.priority;
+
+        // Set the priority to the value obtained from the block controller.
+        priority = prio_resp.priority;
         printf("Priority is now: %d\n", priority);
         pthread_mutex_unlock(&mutex);
     }
