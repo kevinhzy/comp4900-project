@@ -18,20 +18,25 @@
 typedef struct {
 	pid_t pid;
 	unsigned priority;
+	unsigned traffic;
 } intersection_t;
 
+// WIP generic message type
 typedef union {
-	uint16_t msg_type;
+	uint16_t type;
 	struct _pulse pulse;
 	traffic_count_msg_t traffic_count;
 } msg_t;
 
-int find (intersection_t block, int pid) {
+// For finding array index with matching pid
+// Use pid = -1 to find first available index for a newly connected intersection
+int find (intersection_t block, pid_t pid) {
 	for (int i = 0; i < BLOCK_SIZE; i++) {
 		if (block[i].pid == pid) {
-
+			return i;
 		}
 	}
+	return -1;
 }
 
 int main(int argc, char **argv)
@@ -41,16 +46,22 @@ int main(int argc, char **argv)
 	intersection_t block[BLOCK_SIZE];
 	struct _msg_info info;
 
+	// Set up the block array with dummy pids and priority so they can be assigned later
+	for (int i = 0; i < BLOCK_SIZE; i++) {
+		block[i].pid = -1;
+		block[i].priority = 1;
+		block[i].traffic = 0;
+	}
 
 	// register our name for a channel
 	name_attach_t* attach;
 	attach = name_attach(NULL, CTRL_SERVER_NAME, 0);
 
 	while (1) {
-		//receive message
+		// receive message
 		rcvid = MsgReceive(attach->chid, &msg, sizeof(msg), &info);
 		if (0 == rcvid) {
-			//received a pulse
+			// received a pulse
 			switch (msg.pulse.code) {
 			case _PULSE_CODE_DISCONNECT:
 			    printf("Received disconnect pulse\n");
@@ -75,11 +86,16 @@ int main(int argc, char **argv)
 			switch(msg.type)
 			{
 			case GET_PRIO_MSG_TYPE:
-				{
-
-				}
+				// Initial assignment, default priority (1)
+				// Save the PID to the block array
+				int idx = find(block, -1);
+				block[idx].pid = info.pid;
+				MsgReply(rcvid, 0, &block[idx].priority, sizeof(block[idx].priority));
 				break;
 			case TRAFFIC_COUNT_MSG_TYPE:
+				int idx = find(block, info.pid);
+				block[idx].traffic = msg.traffic_count.count;
+				// TODO: Logic for changing priority based off traffic
 				break;
 			default:
 			    perror("MsgError");
