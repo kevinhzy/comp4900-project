@@ -10,20 +10,35 @@
 #include <sys/iofunc.h>
 #include <sys/dispatch.h>
 
-#define CTRL_SERVER_NAME "Block Controller"
+#include "constants.h"
 
+#define BLOCK_SIZE 4
+
+// WIP struct for server handling state of a specific intersection
 typedef struct {
 	pid_t pid;
 	unsigned priority;
 } intersection_t;
 
+typedef union {
+	uint16_t msg_type;
+	struct _pulse pulse;
+	traffic_count_msg_t traffic_count;
+} msg_t;
 
+int find (intersection_t block, int pid) {
+	for (int i = 0; i < BLOCK_SIZE; i++) {
+		if (block[i].pid == pid) {
+
+		}
+	}
+}
 
 int main(int argc, char **argv)
 {
 	msg_t msg;
 	int rcvid;
-	intersection_t block[4];
+	intersection_t block[BLOCK_SIZE];
 	struct _msg_info info;
 
 
@@ -60,6 +75,9 @@ int main(int argc, char **argv)
 			switch(msg.type)
 			{
 			case GET_PRIO_MSG_TYPE:
+				{
+
+				}
 				break;
 			case TRAFFIC_COUNT_MSG_TYPE:
 				break;
