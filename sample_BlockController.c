@@ -90,12 +90,16 @@ int main(int argc, char **argv)
 				// Save the PID to the block array
 				int idx = find(block, -1);
 				block[idx].pid = info.pid;
+				printf("Intersection %d assigned to %d\n", idx, info.pid);
+				printf("Priority assigned: %d\n", block[idx].priority);
 				MsgReply(rcvid, 0, &block[idx].priority, sizeof(block[idx].priority));
 				break;
 			case TRAFFIC_COUNT_MSG_TYPE:
 				int idx = find(block, info.pid);
 				block[idx].traffic = msg.traffic_count.count;
+				printf("Intersection %d updated traffic: %d\n", idx, block[idx].traffic);
 				// TODO: Logic for changing priority based off traffic
+				printf("Updated priority: %d\n", block[idx].priority);
 				break;
 			default:
 			    perror("MsgError");
