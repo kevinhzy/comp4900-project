@@ -19,4 +19,8 @@ typedef struct traffic_count_msg {
 	unsigned count;
 } traffic_count_msg_t;
 
+typedef struct get_prio_msg {
+	uint16_t type;
+} get_prio_msg_t;
+
 #endif /* CONSTANTS_H_ */
