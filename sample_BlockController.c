@@ -9,6 +9,7 @@
 #include <string.h>
 #include <sys/iofunc.h>
 #include <sys/dispatch.h>
+#include <time.h>
 
 #include "constants.h"
 
@@ -45,6 +46,7 @@ int main(int argc, char **argv)
 	int rcvid;
 	intersection_t block[BLOCK_SIZE];
 	struct _msg_info info;
+	get_prio_resp_t prio_resp;
 
 	// Set up the block array with dummy pids and priority so they can be assigned later
 	for (int i = 0; i < BLOCK_SIZE; i++) {
@@ -53,9 +55,13 @@ int main(int argc, char **argv)
 		block[i].traffic = 0;
 	}
 
+	// set random seed for temporary priority assignment
+	srand(time(NULL));
+
 	// register our name for a channel
 	name_attach_t* attach;
 	attach = name_attach(NULL, CTRL_SERVER_NAME, 0);
+	printf("Server running on namespace: %s\n", CTRL_SERVER_NAME);
 
 	while (1) {
 		// receive message
@@ -80,7 +86,6 @@ int main(int argc, char **argv)
 			    printf("unknown pulse received, code = %d\n", msg.pulse.code);
 
 			}
-
 		} else {
 			printf("Message has been received by server\n");
 			int idx;
@@ -94,14 +99,19 @@ int main(int argc, char **argv)
 				block[idx].pid = info.pid;
 				printf("Intersection %d assigned to %d\n", idx, info.pid);
 				printf("Priority assigned: %d\n", block[idx].priority);
-				MsgReply(rcvid, 0, &block[idx].priority, sizeof(block[idx].priority));
+				prio_resp.priority = block[idx].priority;
+				MsgReply(rcvid, 0, &(prio_resp), sizeof(prio_resp));
 				break;
 			case TRAFFIC_COUNT_MSG_TYPE:
 				idx = find(block, info.pid);
 				block[idx].traffic = msg.traffic_count.count;
 				printf("Intersection %d updated traffic: %d\n", idx, block[idx].traffic);
 				// TODO: Logic for changing priority based off traffic
+				// Temporarily assign random value
+				block[idx].priority = (rand() % 4) + 1;
 				printf("Updated priority: %d\n", block[idx].priority);
+				prio_resp.priority = block[idx].priority;
+				MsgReply(rcvid, 0, &(prio_resp), sizeof(prio_resp));
 				break;
 			default:
 			    perror("MsgError");
