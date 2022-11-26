@@ -26,11 +26,11 @@ typedef union {
 	uint16_t type;
 	struct _pulse pulse;
 	traffic_count_msg_t traffic_count;
-} msg_t;
+} buffer_t;
 
 // For finding array index with matching pid
 // Use pid = -1 to find first available index for a newly connected intersection
-int find (intersection_t block, pid_t pid) {
+int find (intersection_t* block, pid_t pid) {
 	for (int i = 0; i < BLOCK_SIZE; i++) {
 		if (block[i].pid == pid) {
 			return i;
@@ -41,7 +41,7 @@ int find (intersection_t block, pid_t pid) {
 
 int main(int argc, char **argv)
 {
-	msg_t msg;
+	buffer_t msg;
 	int rcvid;
 	intersection_t block[BLOCK_SIZE];
 	struct _msg_info info;
@@ -82,20 +82,22 @@ int main(int argc, char **argv)
 			}
 
 		} else {
+			printf("Message has been received by server\n");
+			int idx;
 			// we got a message, check its type and process the msg based on its type
 			switch(msg.type)
 			{
 			case GET_PRIO_MSG_TYPE:
 				// Initial assignment, default priority (1)
 				// Save the PID to the block array
-				int idx = find(block, -1);
+				idx = find(block, -1);
 				block[idx].pid = info.pid;
 				printf("Intersection %d assigned to %d\n", idx, info.pid);
 				printf("Priority assigned: %d\n", block[idx].priority);
 				MsgReply(rcvid, 0, &block[idx].priority, sizeof(block[idx].priority));
 				break;
 			case TRAFFIC_COUNT_MSG_TYPE:
-				int idx = find(block, info.pid);
+				idx = find(block, info.pid);
 				block[idx].traffic = msg.traffic_count.count;
 				printf("Intersection %d updated traffic: %d\n", idx, block[idx].traffic);
 				// TODO: Logic for changing priority based off traffic

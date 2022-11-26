@@ -27,5 +27,5 @@ clean:
 #server.o: server.c server.h
 #client.o: client.c server.h
 
-sample_BlockController.o: sample_BlockController.c
-sample_Intersection.o: sample_Intersection.c
+sample_BlockController.o: sample_BlockController.c constants.h
+sample_Intersection.o: sample_Intersection.c constants.h
