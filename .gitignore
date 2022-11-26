@@ -1,0 +1,9 @@
+# Momentics files
+.project
+.cproject
+
+# Build output files
+*.o
+*.core
+sample_BlockController
+sample_Intersection
