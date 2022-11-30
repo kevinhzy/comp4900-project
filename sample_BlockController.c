@@ -13,7 +13,7 @@
 
 #include "constants.h"
 
-#define BLOCK_SIZE 4
+#define DEFAULT_BLOCK_SIZE 4
 
 // WIP struct for server handling state of a specific intersection
 typedef struct {
@@ -42,6 +42,15 @@ int find (intersection_t* block, pid_t pid) {
 
 int main(int argc, char **argv)
 {
+	int BLOCK_SIZE;
+
+	if (argc < 2) {
+		BLOCK_SIZE = DEFAULT_BLOCK_SIZE;
+	}
+	else {
+		BLOCK_SIZE = atoi(argv[1]);
+	}
+
 	buffer_t msg;
 	int rcvid;
 	intersection_t block[BLOCK_SIZE];
@@ -71,6 +80,8 @@ int main(int argc, char **argv)
 			switch (msg.pulse.code) {
 			case _PULSE_CODE_DISCONNECT:
 			    printf("Received disconnect pulse\n");
+			    int idx = find(block, info.pid);
+			    block[idx].pid = -1;
 			    if (-1 == ConnectDetach(msg.pulse.scoid)) {
 			        perror("ConnectDetach");
 			    }
@@ -107,8 +118,18 @@ int main(int argc, char **argv)
 				block[idx].traffic = msg.traffic_count.count;
 				printf("Intersection %d updated traffic: %d\n", idx, block[idx].traffic);
 				// TODO: Logic for changing priority based off traffic
-				// Temporarily assign random value
-				block[idx].priority = (rand() % 4) + 1;
+				// Rudimentary scaling for traffic priorities
+				if (block[idx].traffic > 20) {
+					block[idx].priority = 5;
+				} else if (block[idx].traffic > 15){
+					block[idx].priority = 4;
+				} else if (block[idx].traffic > 10){
+					block[idx].priority = 3;
+				} else if (block[idx].traffic > 5){
+					block[idx].priority = 2;
+				} else{
+					block[idx].priority = 1;
+				}
 				printf("Updated priority: %d\n", block[idx].priority);
 				prio_resp.priority = block[idx].priority;
 				MsgReply(rcvid, 0, &(prio_resp), sizeof(prio_resp));

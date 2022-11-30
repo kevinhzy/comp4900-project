@@ -81,19 +81,19 @@ void *east_west(void *arg)
     while(1)
     {
     	int ret_code;
-        duration = get_duration(priority);
-
     	ret_code = pthread_mutex_lock(&mutex);
+
+    	duration = get_duration(priority);
     	if(ret_code == EOK){
             printf("East to west is now green for %d seconds!\n", duration);
             sleep(duration);
+            ret_code = pthread_mutex_unlock(&mutex);
             if(ret_code != EOK){
-                if(ret_code != EOK){
-                	printf("pthread_mutex_unlock() failed %s\n", strerror(ret_code));
-                }
-            }else{
-            	printf("pthread_mutex_unlock() failed %s\n", strerror(ret_code));
+                printf("pthread_mutex_unlock() failed %s\n", strerror(ret_code));
             }
+    	}
+    	else{
+    		printf("pthread_mutex_unlock() failed %s\n", strerror(ret_code));
     	}
     }
 }
@@ -103,9 +103,9 @@ void *north_south(void *arg)
     while(1)
     {
     	int ret_code;
-        duration = get_duration(priority);
-
         ret_code = pthread_mutex_lock(&mutex);
+
+        duration = get_duration(priority);
         if(ret_code == EOK){
             printf("North to south is now green for %d seconds!\n", duration);
             sleep(duration);
@@ -144,9 +144,6 @@ void *grabber(void *arg){
         if(ret_code != EOK){
         	printf("pthread_mutex_unlock() failed %s\n", strerror(ret_code));
         }
-        else{
-        	printf("pthread_mutex_unlock() failed %s\n", strerror(ret_code));
-        }
 		while(1){
 
 			int ret_code;
@@ -164,8 +161,6 @@ void *grabber(void *arg){
 				printf("Priority is now: %d\n", priority);
 				ret_code = pthread_mutex_unlock(&mutex);
 				if(ret_code != EOK){
-					printf("pthread_mutex_unlock() failed %s\n", strerror(ret_code));
-				}else{
 					printf("pthread_mutex_unlock() failed %s\n", strerror(ret_code));
 				}
 			}
