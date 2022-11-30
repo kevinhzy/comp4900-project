@@ -16,7 +16,7 @@ TARGET = -Vgcc_ntox86_64
 
 CFLAGS += $(DEBUG) $(TARGET) -Wall
 LDFLAGS+= $(DEBUG) $(TARGET)
-BINS = sample_BlockController sample_Intersection
+BINS = simulator sample_BlockController sample_Intersection
 all: $(BINS)
 
 clean:
@@ -29,3 +29,4 @@ clean:
 
 sample_BlockController.o: sample_BlockController.c constants.h
 sample_Intersection.o: sample_Intersection.c constants.h
+#simulator.o: simulator.c
