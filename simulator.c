@@ -40,19 +40,19 @@ int main(int argc, char **argv) {
 		struct inheritance inherit;
 		inherit.flags = 0;
 
-		int x_coordinate = 0;
-		int y_coordinate = 0;
-		char x_buff[50], y_buff[50];
+		int row = 0;
+		int column = 0;
+		char row_buff[50], column_buff[50];
 
 		for (int i=0; i<INTERSECTIONS; i++){
-			x_coordinate = i % WIDTH_SIZE;
-			y_coordinate = i / WIDTH_SIZE;
+			row = i / WIDTH_SIZE;
+			column = i % WIDTH_SIZE;
 
-			char *args[] = {"sample_Intersection",itoa(x_coordinate, x_buff, 10),itoa(y_coordinate, y_buff, 10), NULL};
+			char *args[] = {"sample_Intersection",itoa(row, row_buff, 10),itoa(column, column_buff, 10), NULL};
 			if((pid = spawn("/tmp/sample_Intersection", 0, NULL, &inherit, args, environ))==-1){
-				printf("[Sim] Failed to spawn intersection assigned location (%d, %d) | PID: %d\n",x_coordinate,y_coordinate, pid);
+				printf("[Sim] Failed to spawn intersection assigned location (%d, %d) | PID: %d\n",row,column, pid);
 			}else{
-				printf("[Sim] Succesfully spawned intersection with location (%d, %d)| PID: %d\n", x_coordinate, y_coordinate, pid);
+				printf("[Sim] Succesfully spawned intersection with location (%d, %d)| PID: %d\n", row, column, pid);
 			}
 		}
 		return 0;
