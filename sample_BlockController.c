@@ -13,13 +13,19 @@
 
 #include "constants.h"
 
-#define DEFAULT_BLOCK_SIZE 4
+int INTERSECTIONS;
+
+typedef struct{
+	int x;
+	int y;
+} coordinates_t;
 
 // WIP struct for server handling state of a specific intersection
 typedef struct {
 	pid_t pid;
 	unsigned priority;
 	unsigned traffic;
+	coordinates_t coordinates;
 } intersection_t;
 
 // WIP generic message type
@@ -32,7 +38,7 @@ typedef union {
 // For finding array index with matching pid
 // Use pid = -1 to find first available index for a newly connected intersection
 int find (intersection_t* block, pid_t pid) {
-	for (int i = 0; i < BLOCK_SIZE; i++) {
+	for (int i = 0; i < INTERSECTIONS; i++) {
 		if (block[i].pid == pid) {
 			return i;
 		}
@@ -42,26 +48,19 @@ int find (intersection_t* block, pid_t pid) {
 
 int main(int argc, char **argv)
 {
-	int BLOCK_SIZE;
-
-	if (argc < 2) {
-		BLOCK_SIZE = DEFAULT_BLOCK_SIZE;
-	}
-	else {
-		BLOCK_SIZE = atoi(argv[1]);
-	}
-
 	buffer_t msg;
 	int rcvid;
-	intersection_t block[BLOCK_SIZE];
+	intersection_t block[INTERSECTIONS-1];
 	struct _msg_info info;
 	get_prio_resp_t prio_resp;
 
-	// Set up the block array with dummy pids and priority so they can be assigned later
-	for (int i = 0; i < BLOCK_SIZE; i++) {
+	// Set up the block array with dummy pids, priority, traffic count and coordinates so they can be assigned later
+	for (int i = 0; i < INTERSECTIONS; i++) {
 		block[i].pid = -1;
 		block[i].priority = 1;
 		block[i].traffic = 0;
+		block[i].coordinates.x = -1;
+		block[i].coordinates.y = -1;
 	}
 
 	// set random seed for temporary priority assignment
@@ -116,6 +115,8 @@ int main(int argc, char **argv)
 			case TRAFFIC_COUNT_MSG_TYPE:
 				idx = find(block, info.pid);
 				block[idx].traffic = msg.traffic_count.count;
+				block[idx].coordinates.x = msg.traffic_count.x;
+				block[idx].coordinates.y = msg.traffic_count.y;
 				printf("Intersection %d updated traffic: %d\n", idx, block[idx].traffic);
 				// TODO: Logic for changing priority based off traffic
 				// Rudimentary scaling for traffic priorities

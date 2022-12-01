@@ -29,4 +29,4 @@ clean:
 
 sample_BlockController.o: sample_BlockController.c constants.h
 sample_Intersection.o: sample_Intersection.c constants.h
-#simulator.o: simulator.c
+simulator.o: simulator.c constants.h

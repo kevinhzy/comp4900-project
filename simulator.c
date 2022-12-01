@@ -6,6 +6,8 @@
 #include <sys/wait.h>
 #include <sys/procmgr.h>
 
+#include "constants.h"
+
 int main(int argc, char **argv) {
 
 	// Allow this process to spawn child processes.
@@ -15,33 +17,28 @@ int main(int argc, char **argv) {
 	struct inheritance inherit;
 	inherit.flags = 0;
 
-	// grid_size: total number of intersections
-	// width: the grid's width
-	const int grid_size = 4, width = 2;
-	int row, col;
+	int INTERSECTIONS = atoi(argv[1]);
+	int WIDTH_SIZE = atoi(argv[2]);
 
-	char str_row[3], str_col[3];
-	char *inter_args[4] = {"sample_Intersection", str_row, str_col, NULL};
+	int x_coordinate = 0;
+	int y_coordinate = 0;
 
 	pid_t pid;
 
-	// TODO: Spawn sample_BlockController process for intersections to connect to.
-	// Should be relatively straight forward. 1 call to spawn() will suffice.
-
-	for (int count = 0; count < grid_size; count ++)
-	{
-		row = count / width;
-		col = count % width;
-
-		// Convert row and col to strings and copy them into command-line arguments.
-		sprintf(inter_args[1], "%d", row);
-		sprintf(inter_args[2], "%d", col);
-
-		pid = spawn("sample_Intersection", 0, NULL, &inherit, inter_args, environ);
-		if (pid == -1) {
-			printf("[Sim] Failed to spawn intersection assigned location (%d, %d)\n", row, col);
+	for (int i=1; i<=INTERSECTIONS; i++){
+		if(i%WIDTH_SIZE == 0){
+			x_coordinate += 1;
+			y_coordinate = WIDTH_SIZE - 1;
 		}else{
-			printf("[Sim] Succesfully spawned intersection with location (%d, %d) | PID: %d\n", row, col, pid);
+			y_coordinate = (i%WIDTH_SIZE)-1;
+		}
+
+		char x_buff[50], y_buff[50];
+		char *args[] = {"sample_Intersection",itoa(x_coordinate, x_buff, 10),itoa(y_coordinate, y_buff, 10), NULL};
+		if((pid = spawn("sample_Intersection", 0, NULL, &inherit, args, environ))==-1){
+			printf("[Sim] Failed to spawn intersection assigned location (%d, %d)\n",x_coordinate,y_coordinate);
+		}else{
+			printf("[Sim] Succesfully spawned intersection with location (%d, %d)| PID: %d\n", x_coordinate, y_coordinate, pid);
 		}
 	}
 

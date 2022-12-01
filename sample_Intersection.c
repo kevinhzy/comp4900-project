@@ -29,6 +29,11 @@ void *east_west(void *);
 void *north_south(void *);
 void *grabber(void *);
 
+typedef struct{
+	int x;
+	int y;
+} arg_coordinates;
+
 int main(int argc, char *argv[]){
 
     int run_duration = 120;
@@ -36,8 +41,11 @@ int main(int argc, char *argv[]){
 
     printf("Running sample intersection for %d seconds\n", run_duration);
 
+    arg_coordinates args;
+    args.x = atoi(argv[1]);
+    args.y = atoi(argv[2]);
     // Create the grabber thread.
-    if((pthread_create(&thdID0, NULL, grabber, NULL)) != 0){
+    if((pthread_create(&thdID0, NULL, grabber, (void *)&args)) != 0){
     	printf("Error in grabber thread\n");
     	exit(EXIT_FAILURE);
     };
@@ -122,18 +130,19 @@ void *north_south(void *arg)
 void *grabber(void *arg){
 
 	int ret_code, coid;
-	ret_code = pthread_mutex_lock(&mutex);
+	arg_coordinates *args = (arg_coordinates *) arg;
 
+	ret_code = pthread_mutex_lock(&mutex);
 	if(ret_code == EOK){
 		// Acquire connection id from the server's name.
 		coid = name_open(CTRL_SERVER_NAME, 0);
 
 		get_prio_msg_t prio_msg = {.type = GET_PRIO_MSG_TYPE};
-		traffic_count_msg_t traffic_msg = {.type = TRAFFIC_COUNT_MSG_TYPE, .count = 0};
+		traffic_count_msg_t traffic_msg = {.type = TRAFFIC_COUNT_MSG_TYPE, .count = 0, .x= args->x, .y = args->y};
 		get_prio_resp_t prio_resp;
 		//	unsigned test_priority;
 
-		// Send request to block controller asking for a priority.
+		// Send request to block controller asking for a priority for this intersection.
 		MsgSend(coid, &prio_msg, sizeof(prio_msg), &prio_resp, sizeof(prio_resp));
 
 		// Set the priority to the value obtained from the block controller.
