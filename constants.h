@@ -13,12 +13,6 @@
 
 #define GET_PRIO_MSG_TYPE (_IO_MAX+200)
 #define TRAFFIC_COUNT_MSG_TYPE (_IO_MAX+201)
-#define GET_INTERSECTIONS_INFO (_IO_MAX+202)
-
-typedef struct intersection_info {
-	uint16_t type;
-	int num_of_intersections;
-} intersection_info_t;
 
 typedef struct traffic_count_msg {
 	uint16_t type;
