@@ -50,7 +50,7 @@ int main(int argc, char **argv)
 {
 	buffer_t msg;
 	int rcvid;
-	intersection_t block[INTERSECTIONS-1];
+	intersection_t block[INTERSECTIONS];
 	struct _msg_info info;
 	get_prio_resp_t prio_resp;
 
