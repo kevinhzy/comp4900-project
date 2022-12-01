@@ -13,7 +13,12 @@
 
 #define GET_PRIO_MSG_TYPE (_IO_MAX+200)
 #define TRAFFIC_COUNT_MSG_TYPE (_IO_MAX+201)
+#define GET_INTERSECTIONS_INFO (_IO_MAX+202)
 
+typedef struct intersection_info {
+	uint16_t type;
+	int num_of_intersections;
+} intersection_info_t;
 
 typedef struct traffic_count_msg {
 	uint16_t type;
@@ -33,7 +38,4 @@ typedef struct get_prio_resp {
 typedef struct{
 	int direction;
 } car_dir_t;
-
-extern int INTERSECTIONS;
-extern int WIDTH_SIZE;
 #endif /* CONSTANTS_H_ */

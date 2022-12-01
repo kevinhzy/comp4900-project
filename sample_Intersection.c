@@ -10,7 +10,6 @@
 #include <string.h>
 
 #include "constants.h"
-
 /*
  * Global variables for determining light alternation timing.
 */
@@ -65,7 +64,6 @@ int main(int argc, char *argv[]){
     	exit(EXIT_FAILURE);
     };    // Set its priority to 1 so that it's lower than the grabber thread.
     pthread_setschedprio(thdID2, 1);
-
     printf("Threads have all been generated\n");
 
     // Let program run for run_duration seconds.
@@ -131,6 +129,8 @@ void *grabber(void *arg){
 
 	int ret_code, coid;
 	arg_coordinates *args = (arg_coordinates *) arg;
+
+	printf("%d, %d\n", args->x, args->y);
 
 	ret_code = pthread_mutex_lock(&mutex);
 	if(ret_code == EOK){

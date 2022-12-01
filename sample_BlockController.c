@@ -32,6 +32,7 @@ typedef struct {
 typedef union {
 	uint16_t type;
 	struct _pulse pulse;
+	intersection_info_t intersection_count;
 	traffic_count_msg_t traffic_count;
 } buffer_t;
 
@@ -102,6 +103,10 @@ int main(int argc, char **argv)
 			// we got a message, check its type and process the msg based on its type
 			switch(msg.type)
 			{
+			case GET_INTERSECTIONS_INFO:
+				INTERSECTIONS = msg.intersection_count.num_of_intersections;
+				printf("THESE ARE MY INTERSECTIONS %d\n", INTERSECTIONS);
+			break;
 			case GET_PRIO_MSG_TYPE:
 				// Initial assignment, default priority (1)
 				// Save the PID to the block array
