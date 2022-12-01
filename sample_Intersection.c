@@ -73,9 +73,9 @@ int main(int argc, char *argv[]){
 
 int get_duration(int priority)
 {
-	if(priority <1){
+	if(priority < 1){
 		printf("get_duration priority is 0 or -'ve\n");
-		exit(EXIT_FAILURE);
+		return 0;
 	}else{
 		printf("Priority received is: %d\n", priority);
 	}
@@ -128,11 +128,11 @@ void *north_south(void *arg)
 void *grabber(void *arg){
 
 	int ret_code, coid;
+	ret_code = pthread_mutex_lock(&mutex);
 	arg_coordinates *args = (arg_coordinates *) arg;
 
 	printf("%d, %d\n", args->x, args->y);
 
-	ret_code = pthread_mutex_lock(&mutex);
 	if(ret_code == EOK){
 		// Acquire connection id from the server's name.
 		coid = name_open(CTRL_SERVER_NAME, 0);
