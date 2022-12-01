@@ -13,6 +13,8 @@
 
 #include "constants.h"
 
+#define DEFAULT_BLOCK_SIZE 4
+
 int INTERSECTIONS;
 
 typedef struct{
@@ -32,7 +34,6 @@ typedef struct {
 typedef union {
 	uint16_t type;
 	struct _pulse pulse;
-	intersection_info_t intersection_count;
 	traffic_count_msg_t traffic_count;
 } buffer_t;
 
@@ -49,6 +50,13 @@ int find (intersection_t* block, pid_t pid) {
 
 int main(int argc, char **argv)
 {
+	if (argc < 2) {
+		INTERSECTIONS = DEFAULT_BLOCK_SIZE;
+	}
+	else {
+		INTERSECTIONS = atoi(argv[1]);
+	}
+
 	buffer_t msg;
 	int rcvid;
 	intersection_t block[INTERSECTIONS];
@@ -79,22 +87,22 @@ int main(int argc, char **argv)
 			// received a pulse
 			switch (msg.pulse.code) {
 			case _PULSE_CODE_DISCONNECT:
-			    printf("Received disconnect pulse\n");
-			    int idx = find(block, info.pid);
-			    block[idx].pid = -1;
-			    if (-1 == ConnectDetach(msg.pulse.scoid)) {
-			        perror("ConnectDetach");
-			    }
-			    break;
+				printf("Received disconnect pulse\n");
+				int idx = find(block, info.pid);
+				block[idx].pid = -1;
+				if (-1 == ConnectDetach(msg.pulse.scoid)) {
+					perror("ConnectDetach");
+				}
+				break;
 			case _PULSE_CODE_UNBLOCK:
-			    printf("Received unblock pulse\n");
-			    if (-1 == MsgError(msg.pulse.value.sival_int, -1)) {
-			        perror("MsgError");
-			    }
-			    break;
+				printf("Received unblock pulse\n");
+				if (-1 == MsgError(msg.pulse.value.sival_int, -1)) {
+					perror("MsgError");
+				}
+				break;
 
 			default:
-			    printf("unknown pulse received, code = %d\n", msg.pulse.code);
+				printf("unknown pulse received, code = %d\n", msg.pulse.code);
 
 			}
 		} else {
@@ -103,10 +111,6 @@ int main(int argc, char **argv)
 			// we got a message, check its type and process the msg based on its type
 			switch(msg.type)
 			{
-			case GET_INTERSECTIONS_INFO:
-				INTERSECTIONS = msg.intersection_count.num_of_intersections;
-				printf("THESE ARE MY INTERSECTIONS %d\n", INTERSECTIONS);
-			break;
 			case GET_PRIO_MSG_TYPE:
 				// Initial assignment, default priority (1)
 				// Save the PID to the block array
@@ -141,7 +145,7 @@ int main(int argc, char **argv)
 				MsgReply(rcvid, 0, &(prio_resp), sizeof(prio_resp));
 				break;
 			default:
-			    perror("MsgError");
+				perror("MsgError");
 			}
 		}
 	}
