@@ -42,19 +42,23 @@ int main(int argc, char **argv) {
 
 		int x_coordinate = 0;
 		int y_coordinate = 0;
+		char x_buff[50], y_buff[50];
 
 		for (int i=0; i<INTERSECTIONS; i++){
-			if(i == 0){
-				x_coordinate = 0;
-				y_coordinate = 0;
-			}else if(i%WIDTH_SIZE == 0){
-				x_coordinate += 1;
-				y_coordinate = WIDTH_SIZE-1;
-			}else{
-				y_coordinate = (i%WIDTH_SIZE)-1;
-			}
+			// if(i == 0){
+			// 	x_coordinate = 0;
+			// 	y_coordinate = 0;
+			// }else if(i%WIDTH_SIZE == 0){
+			// 	x_coordinate += 1;
+			// 	y_coordinate = WIDTH_SIZE-1;
+			// }else{
+			// 	y_coordinate = (i%WIDTH_SIZE)-1;
+			// }
 
-			char x_buff[50], y_buff[50];
+			x_coordinate = i % WIDTH_SIZE;
+			y_coordinate = i / WIDTH_SIZE;
+
+			// char x_buff[50], y_buff[50];
 			char *args[] = {"sample_Intersection",itoa(x_coordinate, x_buff, 10),itoa(y_coordinate, y_buff, 10), NULL};
 			if((pid = spawn("/tmp/sample_Intersection", 0, NULL, &inherit, args, environ))==-1){
 				printf("[Sim] Failed to spawn intersection assigned location (%d, %d) | PID: %d\n",x_coordinate,y_coordinate, pid);

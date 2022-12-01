@@ -38,11 +38,12 @@ int main(int argc, char *argv[]){
     int run_duration = 120;
     pthread_t thdID0, thdID1, thdID2;
 
-    printf("Running sample intersection for %d seconds\n", run_duration);
+    // printf("Running sample intersection for %d seconds\n", run_duration);
 
     arg_coordinates args;
     args.x = atoi(argv[1]);
     args.y = atoi(argv[2]);
+
     // Create the grabber thread.
     if((pthread_create(&thdID0, NULL, grabber, (void *)&args)) != 0){
     	printf("Error in grabber thread\n");
@@ -130,7 +131,7 @@ void *grabber(void *arg){
 	int ret_code, coid;
 	arg_coordinates *args = (arg_coordinates *) arg;
 
-	printf("%d, %d\n", args->x, args->y);
+	printf("[IS %d] %d, %d\n", getpid(), args->x, args->y);
 
 	ret_code = pthread_mutex_lock(&mutex);
 	if(ret_code == EOK){
