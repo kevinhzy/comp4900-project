@@ -30,6 +30,7 @@ typedef struct {
 typedef union {
 	uint16_t type;
 	struct _pulse pulse;
+	get_prio_msg_t init_data;
 	traffic_count_msg_t traffic_count;
 	car_info_msg_t car_info;
 } buffer_t;
@@ -145,6 +146,8 @@ int main(int argc, char **argv)
 				// Save the PID to the block array
 				idx = find_block_pid(block, -1);
 				block[idx].pid = info.pid;
+				block[idx].coordinates.x = msg.init_data.coordinates.x;
+				block[idx].coordinates.y = msg.init_data.coordinates.y;
 				printf("Intersection %d assigned to %d\n", idx, info.pid);
 				printf("Priority assigned: %d\n", block[idx].priority);
 				prio_resp.priority = block[idx].priority;
@@ -153,8 +156,6 @@ int main(int argc, char **argv)
 			case TRAFFIC_COUNT_MSG_TYPE:
 				idx = find_block_pid(block, info.pid);
 				block[idx].traffic = msg.traffic_count.count;
-				block[idx].coordinates.x = msg.traffic_count.coordinates.x;
-				block[idx].coordinates.y = msg.traffic_count.coordinates.y;
 				printf("Intersection %d updated traffic: %d\n", idx, block[idx].traffic);
 				// TODO: Logic for changing priority based off traffic
 				// Rudimentary scaling for traffic priorities

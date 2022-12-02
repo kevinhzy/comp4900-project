@@ -139,8 +139,8 @@ void *grabber(void *arg){
 		// Acquire connection id from the server's name.
 		coid = name_open(CTRL_SERVER_NAME, 0);
 
-		get_prio_msg_t prio_msg = {.type = GET_PRIO_MSG_TYPE};
-		traffic_count_msg_t traffic_msg = {.type = TRAFFIC_COUNT_MSG_TYPE, .count = rand() % (15 - 10 + 1) + 10, .coordinates.x= args->x, .coordinates.y = args->y};
+		get_prio_msg_t prio_msg = {.type = GET_PRIO_MSG_TYPE, .coordinates.x= args->x, .coordinates.y = args->y};
+		traffic_count_msg_t traffic_msg = {.type = TRAFFIC_COUNT_MSG_TYPE, .count = rand() % (15 - 10 + 1) + 10};
 		get_prio_resp_t prio_resp;
 		//	unsigned test_priority;
 

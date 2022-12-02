@@ -23,11 +23,11 @@ typedef struct {
 typedef struct traffic_count_msg {
 	uint16_t type;
 	unsigned count;
-	coordinates_t coordinates;
 } traffic_count_msg_t;
 
 typedef struct get_prio_msg {
 	uint16_t type;
+	coordinates_t coordinates;
 } get_prio_msg_t;
 
 typedef struct get_prio_resp {
