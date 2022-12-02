@@ -48,8 +48,17 @@ int find (intersection_t* block, pid_t pid) {
 	return -1;
 }
 
+// Function pointer for auto process terminator thread.
+void *auto_terminator(void *);
+
 int main(int argc, char **argv)
 {
+	// Create an auto terminator thread.
+    if((pthread_create(NULL, NULL, auto_terminator, NULL)) != 0) {
+    	printf("Error creating auto terminator thread\n");
+    	exit(EXIT_FAILURE);
+    }
+
 	if (argc < 2) {
 		INTERSECTIONS = DEFAULT_BLOCK_SIZE;
 	}
@@ -150,4 +159,22 @@ int main(int argc, char **argv)
 		}
 	}
 	return 0;
+}
+
+void *auto_terminator(void* arg) {
+	printf("Auto-terminator online. I shall guarantee this process slain\n");
+	// Continuously poll every 1 second to see if
+	// simulator (our parent process) has been terminated.
+	while(1)
+	{
+		// The parent's PID being 1 indicates that this process
+		// is now a child of init, indicating that its original
+		// parent, simulator, has died.
+		if (getppid() == 1) {
+			// Kill this process so it doesn't linger and cause segmentation
+			// fault issues for the next block controller that is run.
+			kill(getpid(), SIGKILL);
+		}
+		sleep(1);
+	}
 }
