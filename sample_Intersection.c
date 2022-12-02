@@ -28,21 +28,23 @@ void *east_west(void *);
 void *north_south(void *);
 void *grabber(void *);
 
-typedef struct{
-	int x;
-	int y;
-} arg_coordinates;
+// Function pointer for auto process terminator thread.
+void *auto_terminator(void *);
 
 int main(int argc, char *argv[]){
 
+	// Create an auto terminator thread.
+	if((pthread_create(NULL, NULL, auto_terminator, NULL)) != 0) {
+		printf("Error creating auto terminator thread\n");
+		exit(EXIT_FAILURE);
+	}
+
     int run_duration = 120;
     pthread_t thdID0, thdID1, thdID2;
+    coordinates_t args = {.x = atoi(argv[1]), .y = atoi(argv[2])};
 
     printf("Running sample intersection for %d seconds\n", run_duration);
 
-    arg_coordinates args;
-    args.x = atoi(argv[1]);
-    args.y = atoi(argv[2]);
     // Create the grabber thread.
     if((pthread_create(&thdID0, NULL, grabber, (void *)&args)) != 0){
     	printf("Error in grabber thread\n");
@@ -129,7 +131,7 @@ void *grabber(void *arg){
 
 	int ret_code, coid;
 	ret_code = pthread_mutex_lock(&mutex);
-	arg_coordinates *args = (arg_coordinates *) arg;
+	coordinates_t *args = (coordinates_t *) arg;
 
 	printf("%d, %d\n", args->x, args->y);
 
@@ -138,7 +140,7 @@ void *grabber(void *arg){
 		coid = name_open(CTRL_SERVER_NAME, 0);
 
 		get_prio_msg_t prio_msg = {.type = GET_PRIO_MSG_TYPE};
-		traffic_count_msg_t traffic_msg = {.type = TRAFFIC_COUNT_MSG_TYPE, .count = 0, .x= args->x, .y = args->y};
+		traffic_count_msg_t traffic_msg = {.type = TRAFFIC_COUNT_MSG_TYPE, .count = rand() % (15 - 10 + 1) + 10, .coordinates.x= args->x, .coordinates.y = args->y};
 		get_prio_resp_t prio_resp;
 		//	unsigned test_priority;
 
@@ -159,9 +161,6 @@ void *grabber(void *arg){
 			ret_code = pthread_mutex_lock(&mutex);
 			if(ret_code == EOK){
 				// Obtain traffic count info somehow...
-				// For now, set to arbitary value
-				traffic_msg.count = 8;
-
 				// Send traffic count to block controller and receive back a priority.
 				MsgSend(coid, &traffic_msg, sizeof(traffic_msg), &prio_resp, sizeof(prio_resp));
 
@@ -179,5 +178,23 @@ void *grabber(void *arg){
 		}
 	}else{
 		printf("pthread_mutex_unlock() failed %s\n", strerror(ret_code));
+	}
+}
+
+void *auto_terminator(void* arg) {
+	printf("Auto-terminator online. I shall guarantee this process slain\n");
+	// Continuously poll every 1 second to see if
+	// simulator (our parent process) has been terminated.
+	while(1)
+	{
+		// The parent's PID being 1 indicates that this process
+		// is now a child of init, indicating that its original
+		// parent, simulator, has died.
+		if (getppid() == 1) {
+			// Kill this process so it doesn't linger and cause segmentation
+			// fault issues for the next block controller that is run.
+			kill(getpid(), SIGKILL);
+		}
+		sleep(1);
 	}
 }

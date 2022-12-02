@@ -17,16 +17,12 @@
 
 int INTERSECTIONS;
 
-typedef struct{
-	int x;
-	int y;
-} coordinates_t;
-
 // WIP struct for server handling state of a specific intersection
 typedef struct {
 	pid_t pid;
 	unsigned priority;
 	unsigned traffic;
+	int signal;
 	coordinates_t coordinates;
 } intersection_t;
 
@@ -35,11 +31,12 @@ typedef union {
 	uint16_t type;
 	struct _pulse pulse;
 	traffic_count_msg_t traffic_count;
+	car_info_msg_t car_info;
 } buffer_t;
 
 // For finding array index with matching pid
 // Use pid = -1 to find first available index for a newly connected intersection
-int find (intersection_t* block, pid_t pid) {
+int find_block_pid(intersection_t* block, pid_t pid) {
 	for (int i = 0; i < INTERSECTIONS; i++) {
 		if (block[i].pid == pid) {
 			return i;
@@ -48,8 +45,26 @@ int find (intersection_t* block, pid_t pid) {
 	return -1;
 }
 
+int find_block_coord(intersection_t* block, coordinates_t coordinates){
+	for(int i = 0; i<INTERSECTIONS; i++){
+		if(block[i].coordinates.x == coordinates.x && block[i].coordinates.y == coordinates.y){
+			return i;
+		}
+	}
+	return -1;
+}
+
+// Function pointer for auto process terminator thread.
+void *auto_terminator(void *);
+
 int main(int argc, char **argv)
 {
+	// Create an auto terminator thread.
+    if((pthread_create(NULL, NULL, auto_terminator, NULL)) != 0) {
+    	printf("Error creating auto terminator thread\n");
+    	exit(EXIT_FAILURE);
+    }
+
 	if (argc < 2) {
 		INTERSECTIONS = DEFAULT_BLOCK_SIZE;
 	}
@@ -58,18 +73,21 @@ int main(int argc, char **argv)
 	}
 
 	buffer_t msg;
-	int rcvid;
+	int idx, rcvid;
 	intersection_t block[INTERSECTIONS];
 	struct _msg_info info;
 	get_prio_resp_t prio_resp;
+	coordinates_t car_coords;
+	car_info_resp_t car_response;
 
 	// Set up the block array with dummy pids, priority, traffic count and coordinates so they can be assigned later
 	for (int i = 0; i < INTERSECTIONS; i++) {
 		block[i].pid = -1;
 		block[i].priority = 1;
 		block[i].traffic = 0;
+		block[i].signal = -1;
 		block[i].coordinates.x = -1;
-		block[i].coordinates.y = -1;
+		block[i].coordinates.y= -1;
 	}
 
 	// set random seed for temporary priority assignment
@@ -88,7 +106,7 @@ int main(int argc, char **argv)
 			switch (msg.pulse.code) {
 			case _PULSE_CODE_DISCONNECT:
 				printf("Received disconnect pulse\n");
-				int idx = find(block, info.pid);
+				idx = find_block_pid(block, info.pid);
 				block[idx].pid = -1;
 				if (-1 == ConnectDetach(msg.pulse.scoid)) {
 					perror("ConnectDetach");
@@ -103,18 +121,29 @@ int main(int argc, char **argv)
 
 			default:
 				printf("unknown pulse received, code = %d\n", msg.pulse.code);
-
 			}
 		} else {
 			printf("Message has been received by server\n");
-			int idx;
 			// we got a message, check its type and process the msg based on its type
 			switch(msg.type)
 			{
+			case GET_CAR_INFO_MSG_TYPE:
+				printf("Car is here looking for coordinates: %d, %d\n", msg.car_info.car.coordinates.x, msg.car_info.car.coordinates.y);
+				car_coords = msg.car_info.car.coordinates;
+				if((idx = find_block_coord(block, car_coords)) == -1){
+					printf("[BlockC] BlockC cannot find the intersection with the provided coordinates\n");
+					exit(EXIT_FAILURE);
+				}
+				car_response.signal = block[idx].signal;
+				if(MsgReply(rcvid, 0, &car_response, sizeof(car_response)) == -1){
+					printf("[BlockC] BlockC cannot send signal to the car thread\n");
+					exit(EXIT_FAILURE);
+				};
+			break;
 			case GET_PRIO_MSG_TYPE:
 				// Initial assignment, default priority (1)
 				// Save the PID to the block array
-				idx = find(block, -1);
+				idx = find_block_pid(block, -1);
 				block[idx].pid = info.pid;
 				printf("Intersection %d assigned to %d\n", idx, info.pid);
 				printf("Priority assigned: %d\n", block[idx].priority);
@@ -122,10 +151,10 @@ int main(int argc, char **argv)
 				MsgReply(rcvid, 0, &(prio_resp), sizeof(prio_resp));
 				break;
 			case TRAFFIC_COUNT_MSG_TYPE:
-				idx = find(block, info.pid);
+				idx = find_block_pid(block, info.pid);
 				block[idx].traffic = msg.traffic_count.count;
-				block[idx].coordinates.x = msg.traffic_count.x;
-				block[idx].coordinates.y = msg.traffic_count.y;
+				block[idx].coordinates.x = msg.traffic_count.coordinates.x;
+				block[idx].coordinates.y = msg.traffic_count.coordinates.y;
 				printf("Intersection %d updated traffic: %d\n", idx, block[idx].traffic);
 				// TODO: Logic for changing priority based off traffic
 				// Rudimentary scaling for traffic priorities
@@ -150,4 +179,22 @@ int main(int argc, char **argv)
 		}
 	}
 	return 0;
+}
+
+void *auto_terminator(void* arg) {
+	printf("Auto-terminator online. I shall guarantee this process slain\n");
+	// Continuously poll every 1 second to see if
+	// simulator (our parent process) has been terminated.
+	while(1)
+	{
+		// The parent's PID being 1 indicates that this process
+		// is now a child of init, indicating that its original
+		// parent, simulator, has died.
+		if (getppid() == 1) {
+			// Kill this process so it doesn't linger and cause segmentation
+			// fault issues for the next block controller that is run.
+			kill(getpid(), SIGKILL);
+		}
+		sleep(1);
+	}
 }
