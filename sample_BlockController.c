@@ -50,7 +50,7 @@ int find_block_pid(intersection_t* block, pid_t pid) {
 
 int find_block_coord(intersection_t* block, coordinates_t coordinates){
 	for(int i = 0; i<INTERSECTIONS; i++){
-		if(block[i].coordinates.x == coordinates.x && block[i].coordinates.y == coordinates.y){
+		if(block[i].coordinates.col == coordinates.col && block[i].coordinates.row == coordinates.row){
 			return i;
 		}
 	}
@@ -89,8 +89,8 @@ int main(int argc, char **argv)
 		block[i].priority = 1;
 		block[i].traffic = 0;
 		block[i].signal = 0;
-		block[i].coordinates.x = -1;
-		block[i].coordinates.y= -1;
+		block[i].coordinates.col = -1;
+		block[i].coordinates.row= -1;
 	}
 
 	// set random seed for temporary priority assignment
@@ -132,7 +132,7 @@ int main(int argc, char **argv)
 			{
 			case GET_CAR_INFO_MSG_TYPE:
 				pthread_mutex_lock(&mutex);
-				printf("[BlockC] car%d looking for (%d, %d)...\n", msg.car_info.car.id, msg.car_info.car.coordinates.x, msg.car_info.car.coordinates.y);
+				printf("[BlockC] car%d looking for (%d, %d)...\n", msg.car_info.car.id, msg.car_info.car.coordinates.row, msg.car_info.car.coordinates.col);
 				pthread_mutex_unlock(&mutex);
 				car_coords = msg.car_info.car.coordinates;
 				if((idx = find_block_coord(block, car_coords)) == -1){
@@ -150,8 +150,8 @@ int main(int argc, char **argv)
 				// Save the PID to the block array
 				idx = find_block_pid(block, -1);
 				block[idx].pid = info.pid;
-				block[idx].coordinates.x = msg.init_data.coordinates.x;
-				block[idx].coordinates.y = msg.init_data.coordinates.y;
+				block[idx].coordinates.col = msg.init_data.coordinates.col;
+				block[idx].coordinates.row = msg.init_data.coordinates.row;
 				//printf("Intersection %d assigned to %d\n", idx, info.pid);
 				//printf("Priority assigned: %d\n", block[idx].priority);
 				prio_resp.priority = block[idx].priority;

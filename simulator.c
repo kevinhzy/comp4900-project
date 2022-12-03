@@ -78,9 +78,9 @@ int main(int argc, char **argv) {
 		cars[i].direction = rand() % (3 - 0 + 1) + 0; //randomly generate 0, 1, 2, 3 for direction
 
 		car_grid_allotment = rand() % INTERSECTIONS;
-		cars[i].coordinates.x = car_grid_allotment % WIDTH_SIZE;
-		cars[i].coordinates.y = car_grid_allotment / WIDTH_SIZE;
-		printf("-- car assigned (%d, %d)\n", cars[i].coordinates.y, cars[i].coordinates.x);
+		cars[i].coordinates.row = car_grid_allotment / WIDTH_SIZE;
+		cars[i].coordinates.col = car_grid_allotment % WIDTH_SIZE;
+		printf("-- car assigned (%d, %d)\n", cars[i].coordinates.row, cars[i].coordinates.col);
 
 		//create a thread for each car
 		car_t args = cars[i];
@@ -113,10 +113,10 @@ int main(int argc, char **argv) {
 int off_grid(coordinates_t coordinates, int new_dir){
 
 	// The linear (1-dimensional) position of an intersection.
-	int linear_position = (coordinates.y * WIDTH_SIZE) + (coordinates.x + 1);
+	int linear_position = (coordinates.row * WIDTH_SIZE) + (coordinates.col + 1);
 
 	// Car is at top of grid and tries to move up.
-	if (coordinates.y == 0 && new_dir == 0) {
+	if (coordinates.row == 0 && new_dir == 0) {
 		return 1;
 	}
 	// Car is at bottom of grid and tries to move down.
@@ -124,11 +124,11 @@ int off_grid(coordinates_t coordinates, int new_dir){
 		return 1;
 	}
 	// Car is at leftmost of grid and tries to move left.
-	if (coordinates.x == 0 && new_dir == 1) {
+	if (coordinates.col == 0 && new_dir == 1) {
 		return 1;
 	}
 	// Car is at rightmost of grid and tries to move right.
-	if ((coordinates.x == WIDTH_SIZE - 1 || linear_position == INTERSECTIONS) && new_dir == 2) {
+	if ((coordinates.col == WIDTH_SIZE - 1 || linear_position == INTERSECTIONS) && new_dir == 2) {
 		return 1;
 	}
 
@@ -153,7 +153,7 @@ void *func_car(void *arg){
 		exit(EXIT_FAILURE);
 	}
 	pthread_mutex_lock(&mutex);
-	printf("[Sim] car%d at (%d,%d) starts moving\n", car_info_msg.car.id, car_info_msg.car.coordinates.x, car_info_msg.car.coordinates.y);
+	printf("[Sim] car%d at (%d,%d) starts moving\n", car_info_msg.car.id, car_info_msg.car.coordinates.row, car_info_msg.car.coordinates.col);
 	pthread_mutex_unlock(&mutex);
 
 	while(car->in_grid){
@@ -166,7 +166,7 @@ void *func_car(void *arg){
 		};
 
 		pthread_mutex_lock(&mutex);
-		printf("[Sim] car%d finds (%d, %d)\n", car_info_msg.car.id, car_info_msg.car.coordinates.x, car_info_msg.car.coordinates.y);
+		printf("[Sim] car%d finds (%d, %d)\n", car_info_msg.car.id, car_info_msg.car.coordinates.row, car_info_msg.car.coordinates.col);
 		pthread_mutex_unlock(&mutex);
 
 		//car's logic
@@ -182,7 +182,7 @@ void *func_car(void *arg){
 			}
 
 			pthread_mutex_lock(&mutex);
-			printf("[Sim] car%d at (%d, %d) has old_dir: %d & new_dir: %d\n", car_info_msg.car.id, car_info_msg.car.coordinates.x, car_info_msg.car.coordinates.y, old_dir, new_dir);
+			printf("[Sim] car%d at (%d, %d) has old_dir: %d & new_dir: %d\n", car_info_msg.car.id, car_info_msg.car.coordinates.row, car_info_msg.car.coordinates.col, old_dir, new_dir);
 			pthread_mutex_unlock(&mutex);
 
 			if (off_grid(car->coordinates, new_dir))
@@ -190,17 +190,18 @@ void *func_car(void *arg){
 				car->in_grid = 0;
 				printf("[Sim] car %d fell off the grid\n", car->id);
 			} else{
+				int old_row = car->coordinates.row;
+				int old_col = car->coordinates.col;
 
-				car->coordinates.y += row_increment[new_dir];
-				car->coordinates.x += col_increment[new_dir];
+				car->coordinates.row += row_increment[new_dir];
+				car->coordinates.col += col_increment[new_dir];
 
 				pthread_mutex_lock(&mutex);
-				printf("[Sim] car %d moved from (%d, %d) to (%d, %d)\n", car->id, car->coordinates.x + 1, car->coordinates.y, car->coordinates.x, car->coordinates.y);
+				printf("[Sim] car %d moved from (%d, %d) to (%d, %d)\n", car->id, old_row, old_col, car->coordinates.row, car->coordinates.col);
 				pthread_mutex_unlock(&mutex);
 			}
-
-
 		}
+
 		car_info_msg.car = *car;
 	}
 	if(name_close(server_coid) == -1){

@@ -16,8 +16,8 @@
 #define GET_CAR_INFO_MSG_TYPE (_IO_MAX+202)
 
 typedef struct {
-	int x;
-	int y;
+	int row;
+	int col;
 } coordinates_t;
 
 typedef struct traffic_count_msg {
