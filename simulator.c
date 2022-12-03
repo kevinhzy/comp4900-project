@@ -63,9 +63,14 @@ int main(int argc, char **argv) {
 		}
 	}
 
-	printf("\n");
+	int sleep_time = 3;
+	printf("[Sim] Sleep for %d seconds\n", sleep_time);
+	sleep(sleep_time);
 
+	printf("\n");
 	fflush(stdout);
+
+	// Populate information needed for each car.
 	for(int i = 0; i<num_cars; i++){
 		cars[i].id = i; //set car id
 		cars[i].in_grid = 1; //each car is spawned inside the grid
