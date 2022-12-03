@@ -70,22 +70,20 @@ int main(int argc, char **argv) {
 	printf("\n");
 	fflush(stdout);
 
-	// Populate information needed for each car.
+	int car_grid_allotment;
+
 	for(int i = 0; i<num_cars; i++){
+
+		// Populate information needed for each car.
 		cars[i].id = i; //set car id
 		cars[i].in_grid = 1; //each car is spawned inside the grid
 		cars[i].direction = rand() % (3 - 0 + 1) + 0; //randomly generate 0, 1, 2, 3 for direction
-		if(INTERSECTIONS % WIDTH_SIZE == 0){ //if the grid is a rectangle
-			cars[i].coordinates.x = rand() % ((INTERSECTIONS/WIDTH_SIZE - 1) - 0 + 1) + 0;
-			cars[i].coordinates.y = rand() % ((WIDTH_SIZE - 1) - 0 + 1) + 0;
-		}else{ //if the grid is not a rectangle
-			cars[i].coordinates.x = rand() % (INTERSECTIONS/WIDTH_SIZE - 0 + 1) + 0;
-			if(cars[i].coordinates.x == INTERSECTIONS/WIDTH_SIZE){
-				cars[i].coordinates.y = rand() % ((INTERSECTIONS%WIDTH_SIZE - 1) - 0 + 1) + 0;
-			}else{
-				cars[i].coordinates.y =  rand() % ((WIDTH_SIZE - 1) - 0 + 1) + 0;
-			}
-		}
+
+		car_grid_allotment = rand() % INTERSECTIONS;
+		cars[i].coordinates.x = car_grid_allotment % WIDTH_SIZE;
+		cars[i].coordinates.y = car_grid_allotment / WIDTH_SIZE;
+		printf("-- car assigned (%d, %d)\n", cars[i].coordinates.y, cars[i].coordinates.x);
+
 		//create a thread for each car
 		car_t args = cars[i];
 		if((pthread_create(&threadID[i], NULL, func_car, (void *)&args)) != 0){
@@ -104,35 +102,29 @@ int main(int argc, char **argv) {
 //	   }
 	return 0;
 }
-//checks whether a car has fallen off the grid
+
+// Checks whether a car has fallen off the grid.
+// Returns 1 if car will fall off, 0 otherwise.
 int off_grid(coordinates_t coordinates, int new_dir){
-	if(INTERSECTIONS%WIDTH_SIZE == 0){
-		if(coordinates.y == 0 && new_dir == 1){
-			return 1;
-		}else if(coordinates.y == (WIDTH_SIZE - 1) && new_dir == 2){
-			return 1;
-		}else if(coordinates.x == 0 && new_dir == 0){
-			return 1;
-		}else if(coordinates.x == (INTERSECTIONS/WIDTH_SIZE - 1) && new_dir == 3){
-			return 1;
-		}else{
-			return 0;
-		}
-	}else{
-		if(coordinates.y == 0 && new_dir == 1){
-			return 1;
-		}else if(coordinates.y == (WIDTH_SIZE - 1) && new_dir == 2){
-			return 1;
-		}else if(coordinates.x == 0 && new_dir == 0){
-			return 1;
-		}else if(coordinates.x == INTERSECTIONS/WIDTH_SIZE && new_dir == 3){
-			return 1;
-		}else if(coordinates.x == INTERSECTIONS/WIDTH_SIZE && coordinates.y == (INTERSECTIONS%WIDTH_SIZE - 1) && new_dir == 2){
-			return 1;
-		}else{
-			return 0;
-		}
+
+	// Car is at top of grid and tries to move up.
+	if (coordinates.y == 0 && new_dir == 0) {
+		return 1;
 	}
+	// Car is at bottom of grid and tries to move down.
+	if ((coordinates.y == (INTERSECTIONS - 1) / WIDTH_SIZE) && new_dir == 3) {
+		return 1;
+	}
+	// Car is at leftmost of grid and tries to move left.
+	if (coordinates.x == 0 && new_dir == 1) {
+		return 1;
+	}
+	// Car is at rightmost of grid and tries to move right.
+	if ((coordinates.x == WIDTH_SIZE - 1) && new_dir == 2) {
+		return 1;
+	}
+
+	return 0;
 }
 
 void *func_car(void *arg){
