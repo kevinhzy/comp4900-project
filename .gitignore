@@ -2,6 +2,9 @@
 .project
 .cproject
 
+# VSCode files
+.vscode
+
 # Build output files
 *.o
 *.core
