@@ -14,11 +14,14 @@ int WIDTH_SIZE;
 
 void *func_car(void *);
 
+pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+
 int main(int argc, char **argv) {
 
 	INTERSECTIONS = atoi(argv[1]);
 	WIDTH_SIZE = atoi(argv[2]);
-	int num_cars = rand() % (5 - 1 + 1) + 1; //randomly generate from 1 to 5 cars
+	int num_cars = 5; //rand() % (10 - 8 + 1) + 8; //randomly generate from 1 to 5 cars
+	printf("TOTAL NUMBER OF CARS ON THE GRID: %d\n", num_cars);
 
 	pid_t pid_;
 	pid_t pid[INTERSECTIONS+1];
@@ -49,6 +52,7 @@ int main(int argc, char **argv) {
 	    x_coordinate = i / WIDTH_SIZE;
 	    y_coordinate = i % WIDTH_SIZE;
 
+
 		char x_buff[50], y_buff[50];
 		char *args[] = {"sample_Intersection",itoa(x_coordinate, x_buff, 10),itoa(y_coordinate, y_buff, 10), NULL};
 		if((pid_ = spawn("/tmp/sample_Intersection", 0, NULL, &inherit, args, environ))==-1){
@@ -59,6 +63,9 @@ int main(int argc, char **argv) {
 		}
 	}
 
+	printf("\n");
+
+	fflush(stdout);
 	for(int i = 0; i<num_cars; i++){
 		cars[i].id = i; //set car id
 		cars[i].in_grid = 1; //each car is spawned inside the grid
@@ -74,15 +81,12 @@ int main(int argc, char **argv) {
 				cars[i].coordinates.y =  rand() % ((WIDTH_SIZE - 1) - 0 + 1) + 0;
 			}
 		}
-		printf("Car id: %d, in-grid: %d, direction: %d, x: %d, y: %d\n", cars[i].id, cars[i].in_grid, cars[i].direction, cars[i].coordinates.x, cars[i].coordinates.y);
-
 		//create a thread for each car
 		car_t args = cars[i];
 		if((pthread_create(&threadID[i], NULL, func_car, (void *)&args)) != 0){
 		    printf("[Sim] could not create car thread: %d\n", i);
 		    exit(EXIT_FAILURE);
 		};
-
 	}
 	//free resources of returned car threads
 	 for(int i = 0; i<num_cars; i++){
@@ -134,16 +138,27 @@ void *func_car(void *arg){
 	car_info_resp_t car_info_resp;
 
 	if((server_coid = name_open(CTRL_SERVER_NAME, 0)) == -1){
+		pthread_mutex_lock(&mutex);
 		printf("[Sim] car %d could not connect to the blockController\n", car->id);
+		pthread_mutex_unlock(&mutex);
 		exit(EXIT_FAILURE);
 	}
-
+	pthread_mutex_lock(&mutex);
+	printf("[Sim] car%d at (%d,%d) starts moving\n", car_info_msg.car.id, car_info_msg.car.coordinates.x, car_info_msg.car.coordinates.y);
+	pthread_mutex_unlock(&mutex);
 	while(car->in_grid){
 
 		if(MsgSend(server_coid, &car_info_msg, sizeof(car_info_msg), &car_info_resp, sizeof(car_info_resp)) == -1){
+			pthread_mutex_lock(&mutex);
 			printf("[Sim] car %d could not send info to the blockController\n", car->id);
+			pthread_mutex_unlock(&mutex);
 			exit(EXIT_FAILURE);
 		};
+
+		pthread_mutex_lock(&mutex);
+		printf("[Sim] car%d finds (%d, %d)\n", car_info_msg.car.id, car_info_msg.car.coordinates.x, car_info_msg.car.coordinates.y);
+		pthread_mutex_unlock(&mutex);
+
 
 		//car's logic
 		if(car_info_resp.signal==0){ //green light for car
@@ -153,84 +168,181 @@ void *func_car(void *arg){
 
 			//car can not make u-turns
 			if(old_dir == 0){
-				while(new_dir != 3){ //if car is going up it can't go down
+				while(new_dir == 3){ //if car is going up it can't go down
 					new_dir = rand() % (3 - 0 + 1) + 0;
 				}
 			}else if(old_dir == 1){
-				while(new_dir != 2){ //if car is going left it can't go right
+				while(new_dir == 2){ //if car is going left it can't go right
 					new_dir = rand() % (3 - 0 + 1) + 0;
 				}
 			}else if(old_dir == 2){
-				while(new_dir != 1){ //if car is going right it can't go left
+				while(new_dir == 1){ //if car is going right it can't go left
 					new_dir = rand() % (3 - 0 + 1) + 0;
 				}
 			}else{
-				while(new_dir != 0){ //if car is going down it can't go up
+				while(new_dir == 0){ //if car is going down it can't go up
 					new_dir = rand() % (3 - 0 + 1) + 0;
 				}
 			}
+
+			pthread_mutex_lock(&mutex);
+			printf("[Sim] car%d at (%d, %d) has old_dir: %d & new_dir: %d\n", car_info_msg.car.id, car_info_msg.car.coordinates.x, car_info_msg.car.coordinates.y, old_dir, new_dir);
+			pthread_mutex_unlock(&mutex);
+
 			if(old_dir == new_dir){
 				if(new_dir == 0){
 					if(off_grid(car->coordinates, new_dir) == 1){
+						pthread_mutex_lock(&mutex);
 						printf("[Sim] car %d fell off the grid\n", car->id);
+						pthread_mutex_unlock(&mutex);
+
 						car->in_grid = 0;
 					}else{
 						car->coordinates.x -= 1;
+						pthread_mutex_lock(&mutex);
 						printf("[Sim] car %d moved from (%d, %d) to (%d, %d)\n", car->id, car->coordinates.x + 1, car->coordinates.y, car->coordinates.x, car->coordinates.y);
+						pthread_mutex_unlock(&mutex);
+
 					}
 				}else if(new_dir == 1){
 					if(off_grid(car->coordinates, new_dir) == 1){
+						pthread_mutex_lock(&mutex);
 						printf("[Sim] car %d fell off the grid\n", car->id);
+						pthread_mutex_unlock(&mutex);
 						car->in_grid = 0;
 					}else{
 						car->coordinates.y -= 1;
+						pthread_mutex_lock(&mutex);
 						printf("[Sim] car %d moved from (%d, %d) to (%d, %d)\n", car->id, car->coordinates.x, car->coordinates.y + 1, car->coordinates.x, car->coordinates.y);
+						pthread_mutex_unlock(&mutex);
 					}
 				}else if (new_dir == 2){
 					if(off_grid(car->coordinates, new_dir) == 1){
+						pthread_mutex_lock(&mutex);
 						printf("[Sim] car %d fell of the grid\n", car->id);
+						pthread_mutex_unlock(&mutex);
 						car->in_grid = 0;
 					}else{
 						car->coordinates.y += 1;
+						pthread_mutex_lock(&mutex);
 						printf("[Sim] car %d moved from (%d, %d) to (%d, %d)\n", car->id, car->coordinates.x, car->coordinates.y - 1, car->coordinates.x, car->coordinates.y);
+						pthread_mutex_unlock(&mutex);
 					}
 				}else{
 					if(off_grid(car->coordinates, new_dir) == 1){
+						pthread_mutex_lock(&mutex);
 						printf("[Sim] car %d fell of the grid\n", car->id);
+						pthread_mutex_unlock(&mutex);
+
 						car->in_grid = 0;
 					}else{
 						car->coordinates.x += 1;
+						pthread_mutex_lock(&mutex);
 						printf("[Sim] car %d moved from (%d, %d) to (%d, %d)\n", car->id, car->coordinates.x, car->coordinates.y, car->coordinates.x + 1, car->coordinates.y);
+						pthread_mutex_unlock(&mutex);
+
 					}
 				}
 			}else if (old_dir == 0 && new_dir == 1){
-				car->coordinates.y -= 1;
-				printf("[Sim] car %d moved from (%d, %d) to (%d, %d)\n", car->id, car->coordinates.x, car->coordinates.y + 1, car->coordinates.x, car->coordinates.y);
+				if(off_grid(car->coordinates, new_dir) == 1){
+					pthread_mutex_lock(&mutex);
+					printf("[Sim] car %d fell of the grid\n", car->id);
+					pthread_mutex_unlock(&mutex);
+					car->in_grid = 0;
+				}else{
+					car->coordinates.y -= 1;
+					pthread_mutex_lock(&mutex);
+					printf("[Sim] car %d moved from (%d, %d) to (%d, %d)\n", car->id, car->coordinates.x, car->coordinates.y + 1, car->coordinates.x, car->coordinates.y);
+					pthread_mutex_unlock(&mutex);
+				}
 			}else if (old_dir == 0 && new_dir == 2){
-				car->coordinates.y += 1;
-				printf("[Sim] car %d moved from (%d, %d) to (%d, %d)\n", car->id, car->coordinates.x, car->coordinates.y - 1, car->coordinates.x, car->coordinates.y);
+				if(off_grid(car->coordinates, new_dir) == 1){
+					pthread_mutex_lock(&mutex);
+					printf("[Sim] car %d fell of the grid\n", car->id);
+					pthread_mutex_unlock(&mutex);
+					car->in_grid = 0;
+				}else{
+					car->coordinates.y += 1;
+					pthread_mutex_lock(&mutex);
+					printf("[Sim] car %d moved from (%d, %d) to (%d, %d)\n", car->id, car->coordinates.x, car->coordinates.y - 1, car->coordinates.x, car->coordinates.y);
+					pthread_mutex_unlock(&mutex);
+				}
 			}else if (old_dir == 1 && new_dir == 0){
-				car->coordinates.x -= 1;
-				printf("[Sim] car %d moved from (%d, %d) to (%d, %d)\n", car->id, car->coordinates.x + 1, car->coordinates.y, car->coordinates.x, car->coordinates.y);
+				if(off_grid(car->coordinates, new_dir) == 1){
+					pthread_mutex_lock(&mutex);
+					printf("[Sim] car %d fell of the grid\n", car->id);
+					pthread_mutex_unlock(&mutex);
+					car->in_grid = 0;
+				}else{
+					car->coordinates.x -= 1;
+					pthread_mutex_lock(&mutex);
+					printf("[Sim] car %d moved from (%d, %d) to (%d, %d)\n", car->id, car->coordinates.x + 1, car->coordinates.y, car->coordinates.x, car->coordinates.y);
+					pthread_mutex_unlock(&mutex);
+				}
 			}else if (old_dir == 1 && new_dir == 3){
-				car->coordinates.x += 1;
-				printf("[Sim] car %d moved from (%d, %d) to (%d, %d)\n", car->id, car->coordinates.x - 1, car->coordinates.y, car->coordinates.x, car->coordinates.y);
+				if(off_grid(car->coordinates, new_dir) == 1){
+					pthread_mutex_lock(&mutex);
+					printf("[Sim] car %d fell of the grid\n", car->id);
+					pthread_mutex_unlock(&mutex);
+					car->in_grid = 0;
+				}else{
+					car->coordinates.x += 1;
+					pthread_mutex_lock(&mutex);
+					printf("[Sim] car %d moved from (%d, %d) to (%d, %d)\n", car->id, car->coordinates.x - 1, car->coordinates.y, car->coordinates.x, car->coordinates.y);
+					pthread_mutex_unlock(&mutex);
+				}
 			}else if (old_dir == 2 && new_dir == 0){
-				car->coordinates.x -= 1;
-				printf("[Sim] car %d moved from (%d, %d) to (%d, %d)\n", car->id, car->coordinates.x + 1, car->coordinates.y, car->coordinates.x , car->coordinates.y);
+				if(off_grid(car->coordinates, new_dir) == 1){
+					pthread_mutex_lock(&mutex);
+					printf("[Sim] car %d fell of the grid\n", car->id);
+					pthread_mutex_unlock(&mutex);
+					car->in_grid = 0;
+				}else{
+					car->coordinates.x -= 1;
+					pthread_mutex_lock(&mutex);
+					printf("[Sim] car %d moved from (%d, %d) to (%d, %d)\n", car->id, car->coordinates.x + 1, car->coordinates.y, car->coordinates.x , car->coordinates.y);
+					pthread_mutex_unlock(&mutex);
+				}
 			}else if (old_dir == 2 && new_dir == 3){
-				car->coordinates.x += 1;
-				printf("[Sim] car %d moved from (%d, %d) to (%d, %d)\n", car->id, car->coordinates.x - 1, car->coordinates.y, car->coordinates.x, car->coordinates.y);
+				if(off_grid(car->coordinates, new_dir) == 1){
+					pthread_mutex_lock(&mutex);
+					printf("[Sim] car %d fell of the grid\n", car->id);
+					pthread_mutex_unlock(&mutex);
+					car->in_grid = 0;
+				}else{
+					car->coordinates.x += 1;
+					pthread_mutex_lock(&mutex);
+					printf("[Sim] car %d moved from (%d, %d) to (%d, %d)\n", car->id, car->coordinates.x - 1, car->coordinates.y, car->coordinates.x, car->coordinates.y);
+					pthread_mutex_unlock(&mutex);
+				}
 			}else if (old_dir == 3 && new_dir == 1){
-				car->coordinates.y -= 1;
-				printf("[Sim] car %d moved from (%d, %d) to (%d, %d)\n", car->id, car->coordinates.x, car->coordinates.y + 1, car->coordinates.x, car->coordinates.y);
+				if(off_grid(car->coordinates, new_dir) == 1){
+					pthread_mutex_lock(&mutex);
+					printf("[Sim] car %d fell of the grid\n", car->id);
+					pthread_mutex_unlock(&mutex);
+					car->in_grid = 0;
+				}else{
+					car->coordinates.y -= 1;
+					pthread_mutex_lock(&mutex);
+					printf("[Sim] car %d moved from (%d, %d) to (%d, %d)\n", car->id, car->coordinates.x, car->coordinates.y + 1, car->coordinates.x, car->coordinates.y);
+					pthread_mutex_unlock(&mutex);
+				}
 			}else{
-				car->coordinates.y += 1;
-				printf("[Sim] car %d moved from (%d, %d) to (%d, %d)\n", car->id, car->coordinates.x, car->coordinates.y - 1, car->coordinates.x, car->coordinates.y);
+				if(off_grid(car->coordinates, new_dir) == 1){
+					pthread_mutex_lock(&mutex);
+					printf("[Sim] car %d fell of the grid\n", car->id);
+					pthread_mutex_unlock(&mutex);
+					car->in_grid = 0;
+				}else{
+					car->coordinates.y += 1;
+					pthread_mutex_lock(&mutex);
+					printf("[Sim] car %d moved from (%d, %d) to (%d, %d)\n", car->id, car->coordinates.x, car->coordinates.y - 1, car->coordinates.x, car->coordinates.y);
+					pthread_mutex_unlock(&mutex);
+				}
 			}
 		}
+		car_info_msg.car = *car;
 	}
-
 	if(name_close(server_coid) == -1){
 		printf("[Sim] car %d could not close connection to the blockController\n", car->id);
 		exit(EXIT_FAILURE);

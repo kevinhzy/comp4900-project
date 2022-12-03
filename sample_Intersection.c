@@ -39,11 +39,11 @@ int main(int argc, char *argv[]){
 		exit(EXIT_FAILURE);
 	}
 
-    int run_duration = 120;
+    int run_duration = 12000;
     pthread_t thdID0, thdID1, thdID2;
     coordinates_t args = {.x = atoi(argv[1]), .y = atoi(argv[2])};
 
-    printf("Running sample intersection for %d seconds\n", run_duration);
+    //printf("Running sample intersection for %d seconds\n", run_duration);
 
     // Create the grabber thread.
     if((pthread_create(&thdID0, NULL, grabber, (void *)&args)) != 0){
@@ -66,7 +66,7 @@ int main(int argc, char *argv[]){
     	exit(EXIT_FAILURE);
     };    // Set its priority to 1 so that it's lower than the grabber thread.
     pthread_setschedprio(thdID2, 1);
-    printf("Threads have all been generated\n");
+    //printf("Threads have all been generated\n");
 
     // Let program run for run_duration seconds.
     sleep(run_duration);
@@ -79,7 +79,7 @@ int get_duration(int priority)
 		printf("get_duration priority is 0 or -'ve\n");
 		return 0;
 	}else{
-		printf("Priority received is: %d\n", priority);
+		//printf("Priority received is: %d\n", priority);
 	}
 	return (20 / priority);
 }
@@ -93,7 +93,7 @@ void *east_west(void *arg)
 
     	duration = get_duration(priority);
     	if(ret_code == EOK){
-            printf("East to west is now green for %d seconds!\n", duration);
+            //printf("East to west is now green for %d seconds!\n", duration);
             sleep(duration);
             ret_code = pthread_mutex_unlock(&mutex);
             if(ret_code != EOK){
@@ -115,7 +115,7 @@ void *north_south(void *arg)
 
         duration = get_duration(priority);
         if(ret_code == EOK){
-            printf("North to south is now green for %d seconds!\n", duration);
+            //printf("North to south is now green for %d seconds!\n", duration);
             sleep(duration);
             ret_code = pthread_mutex_unlock(&mutex);
             if(ret_code != EOK){
@@ -133,8 +133,6 @@ void *grabber(void *arg){
 	ret_code = pthread_mutex_lock(&mutex);
 	coordinates_t *args = (coordinates_t *) arg;
 
-	printf("%d, %d\n", args->x, args->y);
-
 	if(ret_code == EOK){
 		// Acquire connection id from the server's name.
 		coid = name_open(CTRL_SERVER_NAME, 0);
@@ -148,7 +146,7 @@ void *grabber(void *arg){
 		MsgSend(coid, &prio_msg, sizeof(prio_msg), &prio_resp, sizeof(prio_resp));
 
 		// Set the priority to the value obtained from the block controller.
-		printf("Received priority %u from server\n", prio_resp.priority);
+		//printf("Received priority %u from server\n", prio_resp.priority);
 		priority = prio_resp.priority;
 		ret_code = pthread_mutex_unlock(&mutex);
 
@@ -166,7 +164,7 @@ void *grabber(void *arg){
 
 				// Set the priority to the value obtained from the block controller.
 				priority = prio_resp.priority;
-				printf("Priority is now: %d\n", priority);
+				//printf("Priority is now: %d\n", priority);
 				ret_code = pthread_mutex_unlock(&mutex);
 				if(ret_code != EOK){
 					printf("pthread_mutex_unlock() failed %s\n", strerror(ret_code));
@@ -182,7 +180,7 @@ void *grabber(void *arg){
 }
 
 void *auto_terminator(void* arg) {
-	printf("Auto-terminator online. I shall guarantee this process slain\n");
+	//printf("Auto-terminator online. I shall guarantee this process slain\n");
 	// Continuously poll every 1 second to see if
 	// simulator (our parent process) has been terminated.
 	while(1)
