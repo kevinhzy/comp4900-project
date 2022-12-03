@@ -107,12 +107,15 @@ int main(int argc, char **argv) {
 // Returns 1 if car will fall off, 0 otherwise.
 int off_grid(coordinates_t coordinates, int new_dir){
 
+	// The linear (1-dimensional) position of an intersection.
+	int linear_position = (coordinates.y * WIDTH_SIZE) + (coordinates.x + 1);
+
 	// Car is at top of grid and tries to move up.
 	if (coordinates.y == 0 && new_dir == 0) {
 		return 1;
 	}
 	// Car is at bottom of grid and tries to move down.
-	if ((coordinates.y == (INTERSECTIONS - 1) / WIDTH_SIZE) && new_dir == 3) {
+	if ((INTERSECTIONS - linear_position < WIDTH_SIZE) && new_dir == 3) {
 		return 1;
 	}
 	// Car is at leftmost of grid and tries to move left.
@@ -120,7 +123,7 @@ int off_grid(coordinates_t coordinates, int new_dir){
 		return 1;
 	}
 	// Car is at rightmost of grid and tries to move right.
-	if ((coordinates.x == WIDTH_SIZE - 1) && new_dir == 2) {
+	if ((coordinates.x == WIDTH_SIZE - 1 || linear_position == INTERSECTIONS) && new_dir == 2) {
 		return 1;
 	}
 
