@@ -35,8 +35,11 @@ int main(int argc, char **argv) {
 	struct inheritance inherit;
 	inherit.flags = 0;
 
-	char interBuff[50];
-	char *argsForCtrl[] = {"sample_BlockController",itoa(INTERSECTIONS, interBuff, 10), NULL};
+	// ---------------------------
+	// Spawn the block controller.
+	// ---------------------------
+	char inter_count_buff[12], width_buff[12];
+	char *argsForCtrl[] = {"sample_BlockController", itoa(INTERSECTIONS, inter_count_buff, 10), itoa(WIDTH_SIZE, width_buff, 10), NULL};
 	if((pid_ = spawn("/tmp/sample_BlockController", 0, NULL, &inherit, argsForCtrl, environ))==-1){
 		printf("[Sim] Failed to spawn Block Controller.\n");
 	}else{
@@ -44,8 +47,10 @@ int main(int argc, char **argv) {
 		printf("[Sim] Succesfully spawned Block Controller\n");
 	}
 
+	// ------------------------
+	// Spawn the intersections.
+	// ------------------------
 	int r_coordinate = 0, c_coordinate = 0;
-
 	for(int i = 0; i<INTERSECTIONS; i++){
 
 	    r_coordinate = i / WIDTH_SIZE;
@@ -60,6 +65,8 @@ int main(int argc, char **argv) {
 			printf("[Sim] Succesfully spawned intersection with location (%d, %d) | PID: %d\n",r_coordinate,c_coordinate, pid_);
 		}
 	}
+
+	srand(time(NULL));
 
 	int sleep_time = 3;
 	printf("[Sim] Sleep for %d seconds\n", sleep_time);
@@ -83,13 +90,13 @@ int main(int argc, char **argv) {
 		printf("-- car assigned (%d, %d)\n", cars[i].coordinates.row, cars[i].coordinates.col);
 
 		//create a thread for each car
-		car_t args = cars[i];
-		if((pthread_create(&threadID[i], NULL, func_car, (void *)&args)) != 0){
+//		car_t args = cars[i];
+//		if((pthread_create(&threadID[i], NULL, func_car, (void *)&args)) != 0){
+		if((pthread_create(&threadID[i], NULL, func_car, (void *)&cars[i])) != 0){
 		    printf("[Sim] could not create car thread: %d\n", i);
 		    exit(EXIT_FAILURE);
 		};
 	}
-
 
 	//free resources of returned car threads
 	for(int i = 0; i<num_cars; i++){
@@ -102,7 +109,7 @@ int main(int argc, char **argv) {
 //	}
 
 	printf("Main will sleep for a little...\n");
-	sleep(3);
+	sleep(30);
 	printf("Main is done sleeping\n");
 
 	return 0;
@@ -152,11 +159,14 @@ void *func_car(void *arg){
 		pthread_mutex_unlock(&mutex);
 		exit(EXIT_FAILURE);
 	}
-	pthread_mutex_lock(&mutex);
-	printf("[Sim] car%d at (%d,%d) starts moving\n", car_info_msg.car.id, car_info_msg.car.coordinates.row, car_info_msg.car.coordinates.col);
-	pthread_mutex_unlock(&mutex);
 
 	while(car->in_grid){
+
+		pthread_mutex_lock(&mutex);
+	//	printf("[Sim] car%d at (%d,%d) starts moving\n", car_info_msg.car.id, car_info_msg.car.coordinates.row, car_info_msg.car.coordinates.col);
+		printf("[Sim] car%d at (%d,%d) requesting information from controller\n", car->id, car->coordinates.row, car->coordinates.col);
+//		printf("[Sim] car%d at (%d,%d) requesting information from controller\n", car_info_msg.car.id, car_info_msg.car.coordinates.row, car_info_msg.car.coordinates.col);
+		pthread_mutex_unlock(&mutex);
 
 		if(MsgSend(server_coid, &car_info_msg, sizeof(car_info_msg), &car_info_resp, sizeof(car_info_resp)) == -1){
 			pthread_mutex_lock(&mutex);
@@ -166,7 +176,8 @@ void *func_car(void *arg){
 		};
 
 		pthread_mutex_lock(&mutex);
-		printf("[Sim] car%d finds (%d, %d)\n", car_info_msg.car.id, car_info_msg.car.coordinates.row, car_info_msg.car.coordinates.col);
+		printf("[Sim] car%d finds (%d, %d)\n", car->id, car->coordinates.row, car->coordinates.col);
+//		printf("[Sim] car%d finds (%d, %d)\n", car_info_msg.car.id, car_info_msg.car.coordinates.row, car_info_msg.car.coordinates.col);
 		pthread_mutex_unlock(&mutex);
 
 		//car's logic
@@ -182,7 +193,8 @@ void *func_car(void *arg){
 			}
 
 			pthread_mutex_lock(&mutex);
-			printf("[Sim] car%d at (%d, %d) has old_dir: %d & new_dir: %d\n", car_info_msg.car.id, car_info_msg.car.coordinates.row, car_info_msg.car.coordinates.col, old_dir, new_dir);
+			printf("[Sim] car%d at (%d, %d) has old_dir: %d & new_dir: %d\n", car->id, car->coordinates.row, car->coordinates.col, old_dir, new_dir);
+//			printf("[Sim] car%d at (%d, %d) has old_dir: %d & new_dir: %d\n", car_info_msg.car.id, car_info_msg.car.coordinates.row, car_info_msg.car.coordinates.col, old_dir, new_dir);
 			pthread_mutex_unlock(&mutex);
 
 			if (off_grid(car->coordinates, new_dir))
@@ -197,13 +209,14 @@ void *func_car(void *arg){
 				car->coordinates.col += col_increment[new_dir];
 
 				pthread_mutex_lock(&mutex);
-				printf("[Sim] car %d moved from (%d, %d) to (%d, %d)\n", car->id, old_row, old_col, car->coordinates.row, car->coordinates.col);
+				printf("[Sim] car%d moved from (%d, %d) to (%d, %d)\n", car->id, old_row, old_col, car->coordinates.row, car->coordinates.col);
 				pthread_mutex_unlock(&mutex);
 			}
 		}
 
 		car_info_msg.car = *car;
 	}
+
 	if(name_close(server_coid) == -1){
 		printf("[Sim] car %d could not close connection to the blockController\n", car->id);
 		exit(EXIT_FAILURE);

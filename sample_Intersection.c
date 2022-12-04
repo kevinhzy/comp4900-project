@@ -76,12 +76,12 @@ int main(int argc, char *argv[]){
 int get_duration(int priority)
 {
 	if(priority < 1){
-		printf("get_duration priority is 0 or -'ve\n");
+		printf("[In] get_duration priority is 0 or -'ve\n");
 		return 0;
 	}else{
-		//printf("Priority received is: %d\n", priority);
+		printf("[In] Priority received is: %d\n", priority);
 	}
-	return (20 / priority);
+	return (5 / priority);
 }
 
 void *east_west(void *arg)
@@ -93,7 +93,7 @@ void *east_west(void *arg)
 
     	duration = get_duration(priority);
     	if(ret_code == EOK){
-            //printf("East to west is now green for %d seconds!\n", duration);
+            printf("[In] East to west is now green for %d seconds!\n", duration);
             sleep(duration);
             ret_code = pthread_mutex_unlock(&mutex);
             if(ret_code != EOK){
@@ -115,7 +115,7 @@ void *north_south(void *arg)
 
         duration = get_duration(priority);
         if(ret_code == EOK){
-            //printf("North to south is now green for %d seconds!\n", duration);
+            printf("[In] North to south is now green for %d seconds!\n", duration);
             sleep(duration);
             ret_code = pthread_mutex_unlock(&mutex);
             if(ret_code != EOK){

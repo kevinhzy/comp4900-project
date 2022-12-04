@@ -34,7 +34,7 @@ typedef struct get_prio_resp {
 	unsigned priority;
 } get_prio_resp_t;
 
-typedef struct{
+typedef struct car{
 	int id;
 	int direction; //0=up, 1=left, 2=right, 3=down
 	int in_grid; //1=yes, 0=no
