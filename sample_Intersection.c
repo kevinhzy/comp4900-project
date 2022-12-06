@@ -43,8 +43,6 @@ int main(int argc, char *argv[]){
     pthread_t thdID0, thdID1, thdID2;
     coordinates_t args = {.row = atoi(argv[1]), .col = atoi(argv[2])};
 
-    //printf("Running sample intersection for %d seconds\n", run_duration);
-
     // Create the grabber thread.
     if((pthread_create(&thdID0, NULL, grabber, (void *)&args)) != 0){
     	printf("Error in grabber thread\n");
@@ -57,16 +55,17 @@ int main(int argc, char *argv[]){
     if((pthread_create(&thdID1, NULL, east_west, NULL)) != 0){
     	printf("Error in east-west thread\n");
     	exit(EXIT_FAILURE);
-    };    // Set its priority to 1 so that it's lower than the grabber thread.
+    };
+    // Set its priority to 1 so that it's lower than the grabber thread.
     pthread_setschedprio(thdID1, 1);
 
     // Create the north_south thread.
     if((pthread_create(&thdID2, NULL, north_south, NULL)) != 0){
     	printf("Error in north-south thread\n");
     	exit(EXIT_FAILURE);
-    };    // Set its priority to 1 so that it's lower than the grabber thread.
+    };
+    // Set its priority to 1 so that it's lower than the grabber thread.
     pthread_setschedprio(thdID2, 1);
-    //printf("Threads have all been generated\n");
 
     // Let program run for run_duration seconds.
     sleep(run_duration);
@@ -81,7 +80,7 @@ int get_duration(int priority)
 	}else{
 		printf("[In] Priority received is: %d\n", priority);
 	}
-	return (5 / priority);
+	return (20 / priority);
 }
 
 void *east_west(void *arg)
@@ -140,7 +139,6 @@ void *grabber(void *arg){
 		get_prio_msg_t prio_msg = {.type = GET_PRIO_MSG_TYPE, .coordinates.row = args->row, .coordinates.col= args->col};
 		traffic_count_msg_t traffic_msg = {.type = TRAFFIC_COUNT_MSG_TYPE, .count = rand() % (15 - 10 + 1) + 10};
 		get_prio_resp_t prio_resp;
-		//	unsigned test_priority;
 
 		// Send request to block controller asking for a priority for this intersection.
 		MsgSend(coid, &prio_msg, sizeof(prio_msg), &prio_resp, sizeof(prio_resp));
@@ -164,7 +162,6 @@ void *grabber(void *arg){
 
 				// Set the priority to the value obtained from the block controller.
 				priority = prio_resp.priority;
-				//printf("Priority is now: %d\n", priority);
 				ret_code = pthread_mutex_unlock(&mutex);
 				if(ret_code != EOK){
 					printf("pthread_mutex_unlock() failed %s\n", strerror(ret_code));
@@ -180,7 +177,7 @@ void *grabber(void *arg){
 }
 
 void *auto_terminator(void* arg) {
-	//printf("Auto-terminator online. I shall guarantee this process slain\n");
+	printf("Auto-terminator online. I shall guarantee this process slain\n");
 	// Continuously poll every 1 second to see if
 	// simulator (our parent process) has been terminated.
 	while(1)

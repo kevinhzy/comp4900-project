@@ -152,8 +152,6 @@ int main(int argc, char **argv)
 				block[idx].pid = info.pid;
 				block[idx].coordinates.col = msg.init_data.coordinates.col;
 				block[idx].coordinates.row = msg.init_data.coordinates.row;
-				//printf("Intersection %d assigned to %d\n", idx, info.pid);
-				//printf("Priority assigned: %d\n", block[idx].priority);
 				prio_resp.priority = block[idx].priority;
 				MsgReply(rcvid, 0, &(prio_resp), sizeof(prio_resp));
 				break;
@@ -174,7 +172,6 @@ int main(int argc, char **argv)
 				} else{
 					block[idx].priority = 1;
 				}
-				//printf("Updated priority: %d\n", block[idx].priority);
 				prio_resp.priority = block[idx].priority;
 				MsgReply(rcvid, 0, &(prio_resp), sizeof(prio_resp));
 				break;
