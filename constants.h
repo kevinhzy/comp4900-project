@@ -12,22 +12,30 @@
 #define CTRL_SERVER_NAME "Block Controller"
 
 #define GET_PRIO_MSG_TYPE (_IO_MAX+200)
-#define TRAFFIC_COUNT_MSG_TYPE (_IO_MAX+201)
+#define UPDATE_PRIO_MSG_TYPE (_IO_MAX+201)
 #define GET_CAR_INFO_MSG_TYPE (_IO_MAX+202)
+
+enum dirs {
+	North = 0,
+	East,
+	South,
+	West
+};
 
 typedef struct {
 	int row;
 	int col;
 } coordinates_t;
 
-typedef struct traffic_count_msg {
+typedef struct update_msg {
 	uint16_t type;
-	unsigned count;
-} traffic_count_msg_t;
+	int state;
+} update_prio_msg_t;
 
 typedef struct get_prio_msg {
 	uint16_t type;
 	coordinates_t coordinates;
+	int state;
 } get_prio_msg_t;
 
 typedef struct get_prio_resp {
@@ -36,7 +44,7 @@ typedef struct get_prio_resp {
 
 typedef struct car{
 	int id;
-	int direction; //0=up, 1=left, 2=right, 3=down
+	enum dirs direction;
 	int in_grid; //1=yes, 0=no
 	coordinates_t coordinates;
 } car_t;
