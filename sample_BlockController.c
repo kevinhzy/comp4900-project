@@ -129,7 +129,6 @@ int main(int argc, char **argv)
 				printf("unknown pulse received, code = %d\n", msg.pulse.code);
 			}
 		} else {
-			//printf("Message has been received by server\n");
 			// we got a message, check its type and process the msg based on its type
 			switch(msg.type)
 			{
@@ -166,8 +165,6 @@ int main(int argc, char **argv)
 				block[idx].coordinates.row = msg.init_data.coordinates.row;
 				block[idx].ew_sig = msg.init_data.state;
 				block[idx].ns_sig = (msg.init_data.state + 1) % 2;
-				//printf("Intersection %d assigned to %d\n", idx, info.pid);
-				//printf("Priority assigned: %d\n", block[idx].priority);
 				prio_resp.priority = block[idx].priority;
 				MsgReply(rcvid, 0, &(prio_resp), sizeof(prio_resp));
 				break;
@@ -176,7 +173,6 @@ int main(int argc, char **argv)
 				idx = find_block_pid(block, info.pid);
 				block[idx].ew_sig = msg.cur_state.state;
 				block[idx].ns_sig = (msg.init_data.state + 1) % 2;
-				//printf("Intersection %d updated traffic: %d\n", idx, block[idx].traffic);
 				// Rudimentary scaling for traffic priorities
 				if (block[idx].traffic > 20) {
 					block[idx].priority = 5;

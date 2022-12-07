@@ -48,7 +48,6 @@ int main(int argc, char *argv[]){
 	int run_duration = 120;
 	pthread_t thdID0, thdID1, thdID2;
 
-	// printf("Running sample intersection for %d seconds\n", run_duration);
 	coordinates_t args = {.row = atoi(argv[1]), .col = atoi(argv[2])};
 
 	// Create the grabber thread.
@@ -152,7 +151,6 @@ void *grabber(void *arg){
 		MsgSend(coid, &prio_msg, sizeof(prio_msg), &prio_resp, sizeof(prio_resp));
 
 		// Set the priority to the value obtained from the block controller.
-		//printf("Received priority %u from server\n", prio_resp.priority);
 		priority = prio_resp.priority;
 		ret_code = pthread_mutex_unlock(&mutex);
 
