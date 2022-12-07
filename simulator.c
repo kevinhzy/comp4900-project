@@ -66,14 +66,9 @@ int main(int argc, char **argv) {
 		}
 	}
 
-	srand(time(NULL));
-
 	int sleep_time = 3;
 	printf("[Sim] Sleep for %d seconds\n", sleep_time);
 	sleep(sleep_time);
-
-	printf("\n");
-	fflush(stdout);
 
 	int car_grid_allotment;
 
@@ -89,8 +84,6 @@ int main(int argc, char **argv) {
 		cars[i].coordinates.col = car_grid_allotment % WIDTH_SIZE;
 
 		//create a thread for each car
-		//		car_t args = cars[i];
-		//		if((pthread_create(&threadID[i], NULL, func_car, (void *)&args)) != 0){
 		if((pthread_create(&threadID[i], NULL, func_car, (void *)&cars[i])) != 0){
 			printf("[Sim] could not create car thread: %d\n", i);
 			exit(EXIT_FAILURE);
