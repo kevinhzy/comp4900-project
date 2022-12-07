@@ -31,6 +31,9 @@ void *grabber(void *);
 // Function pointer for auto process terminator thread.
 void *auto_terminator(void *);
 
+// Function pointer for auto process terminator thread.
+void *auto_terminator(void *);
+
 int main(int argc, char *argv[]){
 
 	// Create an auto terminator thread.
@@ -39,7 +42,7 @@ int main(int argc, char *argv[]){
 		exit(EXIT_FAILURE);
 	}
 
-    int run_duration = 12000;
+    int run_duration = 120;
     pthread_t thdID0, thdID1, thdID2;
     coordinates_t args = {.row = atoi(argv[1]), .col = atoi(argv[2])};
 

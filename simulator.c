@@ -46,7 +46,7 @@ int main(int argc, char **argv) {
 		pid[0] = pid_;
 		printf("[Sim] Succesfully spawned Block Controller\n");
 	}
-
+  
 	// ------------------------
 	// Spawn the intersections.
 	// ------------------------
