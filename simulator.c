@@ -44,7 +44,6 @@ int main(int argc, char **argv) {
 	if((pid_ = spawn("/tmp/sample_BlockController", 0, NULL, &inherit, argsForCtrl, environ))==-1){
 		printf("[Sim] Failed to spawn Block Controller.\n");
 	}else{
-		pid[0] = pid_;
 		printf("[Sim] Succesfully spawned Block Controller\n");
 	}
   
@@ -61,7 +60,6 @@ int main(int argc, char **argv) {
 		if((pid_ = spawn("/tmp/sample_Intersection", 0, NULL, &inherit, args, environ))==-1){
 			printf("[Sim] Failed to spawn intersection assigned location (%d, %d) | PID: %d\n",r_coordinate,c_coordinate, pid_);
 		}else{
-			pid[i+1] = pid_;
 			printf("[Sim] Succesfully spawned intersection with location (%d, %d) | PID: %d\n",r_coordinate,c_coordinate, pid_);
 		}
 	}
