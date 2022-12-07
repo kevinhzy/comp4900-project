@@ -14,7 +14,7 @@ TARGET = -Vgcc_ntox86_64
 #TARGET = -Vgcc_ntoaarch64le
 
 
-CFLAGS += $(DEBUG) $(TARGET) -Wall
+CFLAGS += $(DEBUG) $(TARGET) -Wall 
 LDFLAGS+= $(DEBUG) $(TARGET)
 BINS = simulator sample_BlockController sample_Intersection
 all: $(BINS)

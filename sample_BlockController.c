@@ -17,16 +17,14 @@
 
 int INTERSECTIONS;
 
-typedef struct{
-	int x;
-	int y;
-} coordinates_t;
+pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
 // WIP struct for server handling state of a specific intersection
 typedef struct {
 	pid_t pid;
 	unsigned priority;
 	unsigned traffic;
+	int signal;
 	coordinates_t coordinates;
 } intersection_t;
 
@@ -34,14 +32,25 @@ typedef struct {
 typedef union {
 	uint16_t type;
 	struct _pulse pulse;
+	get_prio_msg_t init_data;
 	traffic_count_msg_t traffic_count;
+	car_info_msg_t car_info;
 } buffer_t;
 
 // For finding array index with matching pid
 // Use pid = -1 to find first available index for a newly connected intersection
-int find (intersection_t* block, pid_t pid) {
+int find_block_pid(intersection_t* block, pid_t pid) {
 	for (int i = 0; i < INTERSECTIONS; i++) {
 		if (block[i].pid == pid) {
+			return i;
+		}
+	}
+	return -1;
+}
+
+int find_block_coord(intersection_t* block, coordinates_t coordinates){
+	for(int i = 0; i<INTERSECTIONS; i++){
+		if(block[i].coordinates.col == coordinates.col && block[i].coordinates.row == coordinates.row){
 			return i;
 		}
 	}
@@ -67,18 +76,21 @@ int main(int argc, char **argv)
 	}
 
 	buffer_t msg;
-	int rcvid;
+	int idx, rcvid;
 	intersection_t block[INTERSECTIONS];
 	struct _msg_info info;
 	get_prio_resp_t prio_resp;
+	coordinates_t car_coords;
+	car_info_resp_t car_response;
 
 	// Set up the block array with dummy pids, priority, traffic count and coordinates so they can be assigned later
 	for (int i = 0; i < INTERSECTIONS; i++) {
 		block[i].pid = -1;
 		block[i].priority = 1;
 		block[i].traffic = 0;
-		block[i].coordinates.x = -1;
-		block[i].coordinates.y = -1;
+		block[i].signal = 0;
+		block[i].coordinates.col = -1;
+		block[i].coordinates.row= -1;
 	}
 
 	// set random seed for temporary priority assignment
@@ -97,7 +109,7 @@ int main(int argc, char **argv)
 			switch (msg.pulse.code) {
 			case _PULSE_CODE_DISCONNECT:
 				printf("Received disconnect pulse\n");
-				int idx = find(block, info.pid);
+				idx = find_block_pid(block, info.pid);
 				block[idx].pid = -1;
 				if (-1 == ConnectDetach(msg.pulse.scoid)) {
 					perror("ConnectDetach");
@@ -112,30 +124,41 @@ int main(int argc, char **argv)
 
 			default:
 				printf("unknown pulse received, code = %d\n", msg.pulse.code);
-
 			}
 		} else {
-			printf("Message has been received by server\n");
-			int idx;
+			//printf("Message has been received by server\n");
 			// we got a message, check its type and process the msg based on its type
 			switch(msg.type)
 			{
+			case GET_CAR_INFO_MSG_TYPE:
+				pthread_mutex_lock(&mutex);
+				printf("[BlockC] car%d looking for (%d, %d)...\n", msg.car_info.car.id, msg.car_info.car.coordinates.row, msg.car_info.car.coordinates.col);
+				pthread_mutex_unlock(&mutex);
+				car_coords = msg.car_info.car.coordinates;
+				if((idx = find_block_coord(block, car_coords)) == -1){
+					printf("[BlockC] BlockC cannot find the intersection with the provided coordinates\n");
+					exit(EXIT_FAILURE);
+				}
+				car_response.signal = block[idx].signal;
+				if(MsgReply(rcvid, 0, &car_response, sizeof(car_response)) == -1){
+					printf("[BlockC] BlockC cannot send signal to the car thread\n");
+					exit(EXIT_FAILURE);
+				};
+			break;
 			case GET_PRIO_MSG_TYPE:
 				// Initial assignment, default priority (1)
 				// Save the PID to the block array
-				idx = find(block, -1);
+				idx = find_block_pid(block, -1);
 				block[idx].pid = info.pid;
-				printf("Intersection %d assigned to %d\n", idx, info.pid);
-				printf("Priority assigned: %d\n", block[idx].priority);
+				block[idx].coordinates.col = msg.init_data.coordinates.col;
+				block[idx].coordinates.row = msg.init_data.coordinates.row;
 				prio_resp.priority = block[idx].priority;
 				MsgReply(rcvid, 0, &(prio_resp), sizeof(prio_resp));
 				break;
 			case TRAFFIC_COUNT_MSG_TYPE:
-				idx = find(block, info.pid);
+				idx = find_block_pid(block, info.pid);
 				block[idx].traffic = msg.traffic_count.count;
-				block[idx].coordinates.x = msg.traffic_count.x;
-				block[idx].coordinates.y = msg.traffic_count.y;
-				printf("Intersection %d updated traffic: %d\n", idx, block[idx].traffic);
+				//printf("Intersection %d updated traffic: %d\n", idx, block[idx].traffic);
 				// TODO: Logic for changing priority based off traffic
 				// Rudimentary scaling for traffic priorities
 				if (block[idx].traffic > 20) {
@@ -149,7 +172,6 @@ int main(int argc, char **argv)
 				} else{
 					block[idx].priority = 1;
 				}
-				printf("Updated priority: %d\n", block[idx].priority);
 				prio_resp.priority = block[idx].priority;
 				MsgReply(rcvid, 0, &(prio_resp), sizeof(prio_resp));
 				break;
