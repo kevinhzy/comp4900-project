@@ -12,18 +12,20 @@
 #include "constants.h"
 /*
  * Global variables for determining light alternation timing.
-*/
+ */
 volatile int priority;
 volatile int duration;
+volatile int state;
 
 /*
  * Mutex used to determine which direction has right of way.
-*/
+ */
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
 
 /*
  * Thread function pointers.
-*/
+ */
 void *east_west(void *);
 void *north_south(void *);
 void *grabber(void *);
@@ -42,37 +44,39 @@ int main(int argc, char *argv[]){
 		exit(EXIT_FAILURE);
 	}
 
-    int run_duration = 120;
-    pthread_t thdID0, thdID1, thdID2;
-    coordinates_t args = {.row = atoi(argv[1]), .col = atoi(argv[2])};
+	state = 0;
+	int run_duration = 120;
+	pthread_t thdID0, thdID1, thdID2;
 
-    // Create the grabber thread.
-    if((pthread_create(&thdID0, NULL, grabber, (void *)&args)) != 0){
-    	printf("Error in grabber thread\n");
-    	exit(EXIT_FAILURE);
-    };
-    // Set its priority to 2 so that it's higher than the direction threads.
-    pthread_setschedprio(thdID0, 2);
+	// printf("Running sample intersection for %d seconds\n", run_duration);
+	coordinates_t args = {.row = atoi(argv[1]), .col = atoi(argv[2])};
 
-    // Create the east_west thread.
-    if((pthread_create(&thdID1, NULL, east_west, NULL)) != 0){
-    	printf("Error in east-west thread\n");
-    	exit(EXIT_FAILURE);
-    };
-    // Set its priority to 1 so that it's lower than the grabber thread.
-    pthread_setschedprio(thdID1, 1);
+	// Create the grabber thread.
+	if((pthread_create(&thdID0, NULL, grabber, (void *)&args)) != 0){
+		printf("Error in grabber thread\n");
+		exit(EXIT_FAILURE);
+	};
+	// Set its priority to 2 so that it's higher than the direction threads.
+	pthread_setschedprio(thdID0, 2);
 
-    // Create the north_south thread.
-    if((pthread_create(&thdID2, NULL, north_south, NULL)) != 0){
-    	printf("Error in north-south thread\n");
-    	exit(EXIT_FAILURE);
-    };
-    // Set its priority to 1 so that it's lower than the grabber thread.
-    pthread_setschedprio(thdID2, 1);
+	// Create the east_west thread.
+	if((pthread_create(&thdID1, NULL, east_west, NULL)) != 0){
+		printf("Error in east-west thread\n");
+		exit(EXIT_FAILURE);
+	};    // Set its priority to 1 so that it's lower than the grabber thread.
+	pthread_setschedprio(thdID1, 1);
 
-    // Let program run for run_duration seconds.
-    sleep(run_duration);
-    return 0;
+	// Create the north_south thread.
+	if((pthread_create(&thdID2, NULL, north_south, NULL)) != 0){
+		printf("Error in north-south thread\n");
+		exit(EXIT_FAILURE);
+	};    // Set its priority to 1 so that it's lower than the grabber thread.
+	pthread_setschedprio(thdID2, 1);
+	printf("Threads have all been generated\n");
+
+	// Let program run for run_duration seconds.
+	sleep(run_duration);
+	return 0;
 }
 
 int get_duration(int priority)
@@ -83,64 +87,65 @@ int get_duration(int priority)
 	}else{
 		printf("[In] Priority received is: %d\n", priority);
 	}
+  
 	return (20 / priority);
+
 }
 
 void *east_west(void *arg)
 {
-    while(1)
-    {
-    	int ret_code;
-    	ret_code = pthread_mutex_lock(&mutex);
+	while(1)
+	{
+		pthread_mutex_lock(&mutex);
+		while (state != 0)
+		{
+			pthread_cond_wait(&cond, &mutex);
+		}
 
-    	duration = get_duration(priority);
-    	if(ret_code == EOK){
-            printf("[In] East to west is now green for %d seconds!\n", duration);
-            sleep(duration);
-            ret_code = pthread_mutex_unlock(&mutex);
-            if(ret_code != EOK){
-                printf("pthread_mutex_unlock() failed %s\n", strerror(ret_code));
-            }
-    	}
-    	else{
-    		printf("pthread_mutex_unlock() failed %s\n", strerror(ret_code));
-    	}
-    }
+		duration = get_duration(priority);
+		printf("[In] East/West is now green for %d seconds!\n", duration);
+		sleep(duration);
+
+		state = 1;
+		pthread_cond_broadcast(&cond);
+		pthread_mutex_unlock(&mutex);
+	}
 }
 
 void *north_south(void *arg)
 {
-    while(1)
-    {
-    	int ret_code;
-        ret_code = pthread_mutex_lock(&mutex);
+	while(1)
+	{
+		pthread_mutex_lock(&mutex);
+		while (state != 1)
+		{
+			pthread_cond_wait(&cond, &mutex);
+		}
 
-        duration = get_duration(priority);
-        if(ret_code == EOK){
-            printf("[In] North to south is now green for %d seconds!\n", duration);
-            sleep(duration);
-            ret_code = pthread_mutex_unlock(&mutex);
-            if(ret_code != EOK){
-            	printf("pthread_mutex_unlock() failed %s\n", strerror(ret_code));
-            }
-        }else{
-        	printf("pthread_mutex_unlock() failed %s\n", strerror(ret_code));
-        }
-    }
+		duration = get_duration(priority);
+		printf("[In] North/South is now green for %d seconds!\n", duration);
+		sleep(duration);
+
+		state = 0;
+		pthread_cond_broadcast(&cond);
+		pthread_mutex_unlock(&mutex);
+	}
 }
 
 void *grabber(void *arg){
 
 	int ret_code, coid;
 	ret_code = pthread_mutex_lock(&mutex);
+
 	coordinates_t *args = (coordinates_t *) arg;
+
 
 	if(ret_code == EOK){
 		// Acquire connection id from the server's name.
 		coid = name_open(CTRL_SERVER_NAME, 0);
 
-		get_prio_msg_t prio_msg = {.type = GET_PRIO_MSG_TYPE, .coordinates.row = args->row, .coordinates.col= args->col};
-		traffic_count_msg_t traffic_msg = {.type = TRAFFIC_COUNT_MSG_TYPE, .count = rand() % (15 - 10 + 1) + 10};
+		get_prio_msg_t prio_msg = {.type = GET_PRIO_MSG_TYPE, .coordinates.row = args->row, .coordinates.col= args->col, .state = state};
+		update_prio_msg_t update_msg = {.type = UPDATE_PRIO_MSG_TYPE, .state = state};
 		get_prio_resp_t prio_resp;
 
 		// Send request to block controller asking for a priority for this intersection.
@@ -151,9 +156,9 @@ void *grabber(void *arg){
 		priority = prio_resp.priority;
 		ret_code = pthread_mutex_unlock(&mutex);
 
-        if(ret_code != EOK){
-        	printf("pthread_mutex_unlock() failed %s\n", strerror(ret_code));
-        }
+		if(ret_code != EOK){
+			printf("pthread_mutex_unlock() failed %s\n", strerror(ret_code));
+		}
 		while(1){
 
 			int ret_code;
@@ -161,7 +166,7 @@ void *grabber(void *arg){
 			if(ret_code == EOK){
 				// Obtain traffic count info somehow...
 				// Send traffic count to block controller and receive back a priority.
-				MsgSend(coid, &traffic_msg, sizeof(traffic_msg), &prio_resp, sizeof(prio_resp));
+				MsgSend(coid, &update_msg, sizeof(update_msg), &prio_resp, sizeof(prio_resp));
 
 				// Set the priority to the value obtained from the block controller.
 				priority = prio_resp.priority;

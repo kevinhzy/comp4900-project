@@ -24,7 +24,8 @@ typedef struct {
 	pid_t pid;
 	unsigned priority;
 	unsigned traffic;
-	int signal;
+	int ns_sig;
+	int ew_sig;
 	coordinates_t coordinates;
 } intersection_t;
 
@@ -33,7 +34,7 @@ typedef union {
 	uint16_t type;
 	struct _pulse pulse;
 	get_prio_msg_t init_data;
-	traffic_count_msg_t traffic_count;
+	update_prio_msg_t cur_state;
 	car_info_msg_t car_info;
 } buffer_t;
 
@@ -47,6 +48,7 @@ int find_block_pid(intersection_t* block, pid_t pid) {
 	}
 	return -1;
 }
+
 
 int find_block_coord(intersection_t* block, coordinates_t coordinates){
 	for(int i = 0; i<INTERSECTIONS; i++){
@@ -63,10 +65,10 @@ void *auto_terminator(void *);
 int main(int argc, char **argv)
 {
 	// Create an auto terminator thread.
-    if((pthread_create(NULL, NULL, auto_terminator, NULL)) != 0) {
-    	printf("Error creating auto terminator thread\n");
-    	exit(EXIT_FAILURE);
-    }
+	if((pthread_create(NULL, NULL, auto_terminator, NULL)) != 0) {
+		printf("Error creating auto terminator thread\n");
+		exit(EXIT_FAILURE);
+	}
 
 	if (argc < 2) {
 		INTERSECTIONS = DEFAULT_BLOCK_SIZE;
@@ -88,9 +90,10 @@ int main(int argc, char **argv)
 		block[i].pid = -1;
 		block[i].priority = 1;
 		block[i].traffic = 0;
-		block[i].signal = 0;
+		block[i].ew_sig = 0;
+		block[i].ns_sig = 1;
 		block[i].coordinates.col = -1;
-		block[i].coordinates.row= -1;
+		block[i].coordinates.row = -1;
 	}
 
 	// set random seed for temporary priority assignment
@@ -139,12 +142,21 @@ int main(int argc, char **argv)
 					printf("[BlockC] BlockC cannot find the intersection with the provided coordinates\n");
 					exit(EXIT_FAILURE);
 				}
-				car_response.signal = block[idx].signal;
+				block[idx].traffic++;
+				if (msg.car_info.car.direction == North || msg.car_info.car.direction == South) {
+					car_response.signal = block[idx].ns_sig;
+				} else {
+					car_response.signal = block[idx].ew_sig;
+				}
+				if (car_response.signal == 0) {
+					block.traffic = 0;
+				}
 				if(MsgReply(rcvid, 0, &car_response, sizeof(car_response)) == -1){
 					printf("[BlockC] BlockC cannot send signal to the car thread\n");
 					exit(EXIT_FAILURE);
 				};
-			break;
+				break;
+
 			case GET_PRIO_MSG_TYPE:
 				// Initial assignment, default priority (1)
 				// Save the PID to the block array
@@ -152,14 +164,19 @@ int main(int argc, char **argv)
 				block[idx].pid = info.pid;
 				block[idx].coordinates.col = msg.init_data.coordinates.col;
 				block[idx].coordinates.row = msg.init_data.coordinates.row;
+				block[idx].ew_sig = msg.init_data.state;
+				block[idx].ns_sig = (msg.init_data.state + 1) % 2;
+				//printf("Intersection %d assigned to %d\n", idx, info.pid);
+				//printf("Priority assigned: %d\n", block[idx].priority);
 				prio_resp.priority = block[idx].priority;
 				MsgReply(rcvid, 0, &(prio_resp), sizeof(prio_resp));
 				break;
-			case TRAFFIC_COUNT_MSG_TYPE:
+
+			case UPDATE_PRIO_MSG_TYPE:
 				idx = find_block_pid(block, info.pid);
-				block[idx].traffic = msg.traffic_count.count;
+				block[idx].ew_sig = msg.cur_state.state;
+				block[idx].ns_sig = (msg.init_data.state + 1) % 2;
 				//printf("Intersection %d updated traffic: %d\n", idx, block[idx].traffic);
-				// TODO: Logic for changing priority based off traffic
 				// Rudimentary scaling for traffic priorities
 				if (block[idx].traffic > 20) {
 					block[idx].priority = 5;

@@ -52,9 +52,8 @@ int main(int argc, char **argv) {
 	// ------------------------
 	int r_coordinate = 0, c_coordinate = 0;
 	for(int i = 0; i<INTERSECTIONS; i++){
-
-	    r_coordinate = i / WIDTH_SIZE;
-	    c_coordinate = i % WIDTH_SIZE;
+		r_coordinate = i / WIDTH_SIZE;
+		c_coordinate = i % WIDTH_SIZE;
 
 		char r_buff[50], c_buff[50];
 		char *args[] = {"sample_Intersection",itoa(r_coordinate, r_buff, 10),itoa(c_coordinate, c_buff, 10), NULL};
@@ -89,9 +88,11 @@ int main(int argc, char **argv) {
 		cars[i].coordinates.col = car_grid_allotment % WIDTH_SIZE;
 
 		//create a thread for each car
+		//		car_t args = cars[i];
+		//		if((pthread_create(&threadID[i], NULL, func_car, (void *)&args)) != 0){
 		if((pthread_create(&threadID[i], NULL, func_car, (void *)&cars[i])) != 0){
-		    printf("[Sim] could not create car thread: %d\n", i);
-		    exit(EXIT_FAILURE);
+			printf("[Sim] could not create car thread: %d\n", i);
+			exit(EXIT_FAILURE);
 		};
 	}
 
@@ -104,6 +105,7 @@ int main(int argc, char **argv) {
 	// in the program finishing almost instantly and not allowing much time
 	// to view the communications that occur between the intersections and
 	// controller. This sleep allows for longer communications between the two.
+
 	printf("Main will sleep for a little...\n");
 	sleep(30);
 	printf("Main is done sleeping\n");
@@ -138,7 +140,7 @@ int off_grid(coordinates_t coordinates, int new_dir){
 	return 0;
 }
 
-int opposite_direction_of[] = {3, 2, 1, 0};
+enum dirs opposite_direction_of[] = {South, West, North, East};
 int row_increment[] = {-1, 0, 0, 1};
 int col_increment[] = {0, -1, 1, 0};
 
@@ -162,7 +164,7 @@ void *func_car(void *arg){
 			printf("[Sim] car %d could not send info to the blockController\n", car->id);
 			exit(EXIT_FAILURE);
 		};
-
+    
 		printf("[Sim] car%d finds (%d, %d)\n", car->id, car->coordinates.row, car->coordinates.col);
 
 		//car's logic
@@ -191,6 +193,10 @@ void *func_car(void *arg){
 
 				printf("[Sim] car%d moved from (%d, %d) to (%d, %d)\n", car->id, old_row, old_col, car->coordinates.row, car->coordinates.col);
 			}
+		}
+		else {
+			printf("[Sim] car%d waiting at red light\n", car->id);
+			sleep(1);
 		}
 
 		car_info_msg.car = *car;
