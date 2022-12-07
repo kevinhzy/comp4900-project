@@ -18,9 +18,11 @@ pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
 int main(int argc, char **argv) {
 
+	srand(time(NULL));
+
 	INTERSECTIONS = atoi(argv[1]);
 	WIDTH_SIZE = atoi(argv[2]);
-	int num_cars = 5; //rand() % (10 - 8 + 1) + 8; //randomly generate from 1 to 5 cars
+	int num_cars = rand() % (50 - (int)(INTERSECTIONS / 2)) + (int)(INTERSECTIONS / 2); //randomly generate INTERSECTIONS/2 to 50 cars
 	printf("TOTAL NUMBER OF CARS ON THE GRID: %d\n", num_cars);
 
 	pid_t pid_;
