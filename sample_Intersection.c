@@ -33,9 +33,6 @@ void *grabber(void *);
 // Function pointer for auto process terminator thread.
 void *auto_terminator(void *);
 
-// Function pointer for auto process terminator thread.
-void *auto_terminator(void *);
-
 int main(int argc, char *argv[]){
 
 	// Create an auto terminator thread.
@@ -49,10 +46,7 @@ int main(int argc, char *argv[]){
 	pthread_t thdID0, thdID1, thdID2;
 
 	// printf("Running sample intersection for %d seconds\n", run_duration);
-
-	arg_coordinates args;
-	args.x = atoi(argv[1]);
-	args.y = atoi(argv[2]);
+	coordinates_t args = {.row = atoi(argv[1]), .col = atoi(argv[2])};
 
 	// Create the grabber thread.
 	if((pthread_create(&thdID0, NULL, grabber, (void *)&args)) != 0){
@@ -139,9 +133,7 @@ void *grabber(void *arg){
 	int ret_code, coid;
 	ret_code = pthread_mutex_lock(&mutex);
 
-	arg_coordinates *args = (arg_coordinates *) arg;
-
-	printf("[IS %d] %d, %d\n", getpid(), args->x, args->y);
+	coordinates_t *args = (coordinates_t *) arg;
 
 
 	if(ret_code == EOK){

@@ -90,8 +90,8 @@ int main(int argc, char **argv)
 		block[i].pid = -1;
 		block[i].priority = 1;
 		block[i].traffic = 0;
-		block[i].ew_sig = 1;
-		block[i].ns_sig = 0;
+		block[i].ew_sig = 0;
+		block[i].ns_sig = 1;
 		block[i].coordinates.col = -1;
 		block[i].coordinates.row = -1;
 	}
@@ -148,6 +148,9 @@ int main(int argc, char **argv)
 				} else {
 					car_response.signal = block[idx].ew_sig;
 				}
+				if (car_response.signal == 0) {
+					block.traffic = 0;
+				}
 				if(MsgReply(rcvid, 0, &car_response, sizeof(car_response)) == -1){
 					printf("[BlockC] BlockC cannot send signal to the car thread\n");
 					exit(EXIT_FAILURE);
@@ -161,8 +164,8 @@ int main(int argc, char **argv)
 				block[idx].pid = info.pid;
 				block[idx].coordinates.col = msg.init_data.coordinates.col;
 				block[idx].coordinates.row = msg.init_data.coordinates.row;
-				block[idx].ew_sig = !msg.init_data.state;
-				block[idx].ns_sig = msg.init_data.state;
+				block[idx].ew_sig = msg.init_data.state;
+				block[idx].ns_sig = (msg.init_data.state + 1) % 2;
 				//printf("Intersection %d assigned to %d\n", idx, info.pid);
 				//printf("Priority assigned: %d\n", block[idx].priority);
 				prio_resp.priority = block[idx].priority;
@@ -171,8 +174,8 @@ int main(int argc, char **argv)
 
 			case UPDATE_PRIO_MSG_TYPE:
 				idx = find_block_pid(block, info.pid);
-				block[idx].ew_sig = !msg.cur_state.state;
-				block[idx].ns_sig = msg.cur_state.state;
+				block[idx].ew_sig = msg.cur_state.state;
+				block[idx].ns_sig = (msg.init_data.state + 1) % 2;
 				//printf("Intersection %d updated traffic: %d\n", idx, block[idx].traffic);
 				// Rudimentary scaling for traffic priorities
 				if (block[idx].traffic > 20) {
