@@ -149,7 +149,7 @@ int main(int argc, char **argv)
 					car_response.signal = block[idx].ew_sig;
 				}
 				if (car_response.signal == 0) {
-					block.traffic = 0;
+					block[idx].traffic = 0;
 				}
 				if(MsgReply(rcvid, 0, &car_response, sizeof(car_response)) == -1){
 					printf("[BlockC] BlockC cannot send signal to the car thread\n");
