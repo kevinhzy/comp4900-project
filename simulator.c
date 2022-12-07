@@ -26,7 +26,6 @@ int main(int argc, char **argv) {
 	printf("TOTAL NUMBER OF CARS ON THE GRID: %d\n", num_cars);
 
 	pid_t pid_;
-	pid_t pid[INTERSECTIONS+1];
 	car_t cars[num_cars];
 	pthread_t threadID[num_cars];
 
