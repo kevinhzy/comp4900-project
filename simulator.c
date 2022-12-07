@@ -47,22 +47,19 @@ int main(int argc, char **argv) {
 		printf("[Sim] Succesfully spawned Block Controller\n");
 	}
 
-	// ------------------------
-	// Spawn the intersections.
-	// ------------------------
-	int r_coordinate = 0, c_coordinate = 0;
-	for(int i = 0; i<INTERSECTIONS; i++){
+	int row = 0;
+	int column = 0;
+	char row_buff[50], column_buff[50];
 
-		r_coordinate = i / WIDTH_SIZE;
-		c_coordinate = i % WIDTH_SIZE;
+	for (int i=0; i<INTERSECTIONS; i++){
+		row = i / WIDTH_SIZE;
+		column = i % WIDTH_SIZE;
 
-		char r_buff[50], c_buff[50];
-		char *args[] = {"sample_Intersection",itoa(r_coordinate, r_buff, 10),itoa(c_coordinate, c_buff, 10), NULL};
-		if((pid_ = spawn("/tmp/sample_Intersection", 0, NULL, &inherit, args, environ))==-1){
-			printf("[Sim] Failed to spawn intersection assigned location (%d, %d) | PID: %d\n",r_coordinate,c_coordinate, pid_);
+		char *args[] = {"sample_Intersection",itoa(row, row_buff, 10),itoa(column, column_buff, 10), NULL};
+		if((pid = spawn("/tmp/sample_Intersection", 0, NULL, &inherit, args, environ))==-1){
+			printf("[Sim] Failed to spawn intersection assigned location (%d, %d) | PID: %d\n",row,column, pid);
 		}else{
-			pid[i+1] = pid_;
-			printf("[Sim] Succesfully spawned intersection with location (%d, %d) | PID: %d\n",r_coordinate,c_coordinate, pid_);
+			printf("[Sim] Succesfully spawned intersection with location (%d, %d)| PID: %d\n", row, column, pid);
 		}
 	}
 

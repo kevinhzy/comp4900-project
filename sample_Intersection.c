@@ -33,6 +33,9 @@ void *grabber(void *);
 // Function pointer for auto process terminator thread.
 void *auto_terminator(void *);
 
+// Function pointer for auto process terminator thread.
+void *auto_terminator(void *);
+
 int main(int argc, char *argv[]){
 
 	// Create an auto terminator thread.
@@ -42,11 +45,14 @@ int main(int argc, char *argv[]){
 	}
 
 	state = 0;
-	int run_duration = 12000;
+	int run_duration = 120;
 	pthread_t thdID0, thdID1, thdID2;
-	coordinates_t args = {.row = atoi(argv[1]), .col = atoi(argv[2])};
 
-	//printf("Running sample intersection for %d seconds\n", run_duration);
+	// printf("Running sample intersection for %d seconds\n", run_duration);
+
+	arg_coordinates args;
+	args.x = atoi(argv[1]);
+	args.y = atoi(argv[2]);
 
 	// Create the grabber thread.
 	if((pthread_create(&thdID0, NULL, grabber, (void *)&args)) != 0){
@@ -69,11 +75,12 @@ int main(int argc, char *argv[]){
 		exit(EXIT_FAILURE);
 	};    // Set its priority to 1 so that it's lower than the grabber thread.
 	pthread_setschedprio(thdID2, 1);
-	//printf("Threads have all been generated\n");
+	printf("Threads have all been generated\n");
 
 	// Let program run for run_duration seconds.
 	sleep(run_duration);
 	return 0;
+
 }
 
 int get_duration(int priority)
@@ -131,7 +138,11 @@ void *grabber(void *arg){
 
 	int ret_code, coid;
 	ret_code = pthread_mutex_lock(&mutex);
-	coordinates_t *args = (coordinates_t *) arg;
+
+	arg_coordinates *args = (arg_coordinates *) arg;
+
+	printf("[IS %d] %d, %d\n", getpid(), args->x, args->y);
+
 
 	if(ret_code == EOK){
 		// Acquire connection id from the server's name.

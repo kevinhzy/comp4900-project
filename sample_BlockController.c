@@ -49,6 +49,7 @@ int find_block_pid(intersection_t* block, pid_t pid) {
 	return -1;
 }
 
+
 int find_block_coord(intersection_t* block, coordinates_t coordinates){
 	for(int i = 0; i<INTERSECTIONS; i++){
 		if(block[i].coordinates.col == coordinates.col && block[i].coordinates.row == coordinates.row){
