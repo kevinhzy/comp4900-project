@@ -46,7 +46,7 @@ int main(int argc, char **argv) {
 		pid[0] = pid_;
 		printf("[Sim] Succesfully spawned Block Controller\n");
 	}
-
+  
 	// ------------------------
 	// Spawn the intersections.
 	// ------------------------
@@ -86,7 +86,6 @@ int main(int argc, char **argv) {
 		car_grid_allotment = rand() % INTERSECTIONS;
 		cars[i].coordinates.row = car_grid_allotment / WIDTH_SIZE;
 		cars[i].coordinates.col = car_grid_allotment % WIDTH_SIZE;
-		printf("-- car assigned (%d, %d)\n", cars[i].coordinates.row, cars[i].coordinates.col);
 
 		//create a thread for each car
 		//		car_t args = cars[i];
@@ -102,10 +101,10 @@ int main(int argc, char **argv) {
 		pthread_join(threadID[i], NULL);
 	}
 
-	// kill blockController and intersections processes
-	//	for(int i = 0; i<INTERSECTIONS + 1; i++){
-	//		kill(pid[i], 9);
-	//	}
+	// Currently, the cars fall off the map almost instantly, resulting
+	// in the program finishing almost instantly and not allowing much time
+	// to view the communications that occur between the intersections and
+	// controller. This sleep allows for longer communications between the two.
 
 	printf("Main will sleep for a little...\n");
 	sleep(30);
@@ -165,6 +164,7 @@ void *func_car(void *arg){
 			printf("[Sim] car %d could not send info to the blockController\n", car->id);
 			exit(EXIT_FAILURE);
 		};
+    
 		printf("[Sim] car%d finds (%d, %d)\n", car->id, car->coordinates.row, car->coordinates.col);
 
 		//car's logic
@@ -174,8 +174,7 @@ void *func_car(void *arg){
 			int new_dir = rand() % 4;
 
 			// Force the car to pick a direction that doesn't result in a U-turn.
-			while(new_dir == opposite_direction_of[old_dir])
-			{
+			while(new_dir == opposite_direction_of[old_dir]) {
 				new_dir = rand() % 4;
 			}
 

@@ -189,7 +189,6 @@ int main(int argc, char **argv)
 				} else{
 					block[idx].priority = 1;
 				}
-				//printf("Updated priority: %d\n", block[idx].priority);
 				prio_resp.priority = block[idx].priority;
 				MsgReply(rcvid, 0, &(prio_resp), sizeof(prio_resp));
 				break;

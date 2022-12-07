@@ -33,6 +33,9 @@ void *grabber(void *);
 // Function pointer for auto process terminator thread.
 void *auto_terminator(void *);
 
+// Function pointer for auto process terminator thread.
+void *auto_terminator(void *);
+
 int main(int argc, char *argv[]){
 
 	// Create an auto terminator thread.
@@ -74,7 +77,6 @@ int main(int argc, char *argv[]){
 	// Let program run for run_duration seconds.
 	sleep(run_duration);
 	return 0;
-
 }
 
 int get_duration(int priority)
@@ -85,7 +87,9 @@ int get_duration(int priority)
 	}else{
 		printf("[In] Priority received is: %d\n", priority);
 	}
-	return (10 / priority);
+  
+	return (20 / priority);
+
 }
 
 void *east_west(void *arg)
@@ -143,7 +147,6 @@ void *grabber(void *arg){
 		get_prio_msg_t prio_msg = {.type = GET_PRIO_MSG_TYPE, .coordinates.row = args->row, .coordinates.col= args->col, .state = state};
 		update_prio_msg_t update_msg = {.type = UPDATE_PRIO_MSG_TYPE, .state = state};
 		get_prio_resp_t prio_resp;
-		//	unsigned test_priority;
 
 		// Send request to block controller asking for a priority for this intersection.
 		MsgSend(coid, &prio_msg, sizeof(prio_msg), &prio_resp, sizeof(prio_resp));
@@ -167,7 +170,6 @@ void *grabber(void *arg){
 
 				// Set the priority to the value obtained from the block controller.
 				priority = prio_resp.priority;
-				//printf("Priority is now: %d\n", priority);
 				ret_code = pthread_mutex_unlock(&mutex);
 				if(ret_code != EOK){
 					printf("pthread_mutex_unlock() failed %s\n", strerror(ret_code));
@@ -183,7 +185,7 @@ void *grabber(void *arg){
 }
 
 void *auto_terminator(void* arg) {
-	//printf("Auto-terminator online. I shall guarantee this process slain\n");
+	printf("Auto-terminator online. I shall guarantee this process slain\n");
 	// Continuously poll every 1 second to see if
 	// simulator (our parent process) has been terminated.
 	while(1)
