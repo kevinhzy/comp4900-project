@@ -19,7 +19,7 @@ int INTERSECTIONS;
 
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
-// WIP struct for server handling state of a specific intersection
+//struct for server handling state of a specific intersection
 typedef struct {
 	pid_t pid;
 	unsigned priority;
@@ -29,7 +29,7 @@ typedef struct {
 	coordinates_t coordinates;
 } intersection_t;
 
-// WIP generic message type
+// message type
 typedef union {
 	uint16_t type;
 	struct _pulse pulse;
@@ -49,7 +49,7 @@ int find_block_pid(intersection_t* block, pid_t pid) {
 	return -1;
 }
 
-
+// For finding array index with matching coordinates
 int find_block_coord(intersection_t* block, coordinates_t coordinates){
 	for(int i = 0; i<INTERSECTIONS; i++){
 		if(block[i].coordinates.col == coordinates.col && block[i].coordinates.row == coordinates.row){
@@ -96,9 +96,6 @@ int main(int argc, char **argv)
 		block[i].coordinates.row = -1;
 	}
 
-	// set random seed for temporary priority assignment
-	srand(time(NULL));
-
 	// register our name for a channel
 	name_attach_t* attach;
 	attach = name_attach(NULL, CTRL_SERVER_NAME, 0);
@@ -132,6 +129,7 @@ int main(int argc, char **argv)
 			// we got a message, check its type and process the msg based on its type
 			switch(msg.type)
 			{
+			// car information
 			case GET_CAR_INFO_MSG_TYPE:
 				pthread_mutex_lock(&mutex);
 				printf("[BlockC] car%d looking for (%d, %d)...\n", msg.car_info.car.id, msg.car_info.car.coordinates.row, msg.car_info.car.coordinates.col);
@@ -141,12 +139,14 @@ int main(int argc, char **argv)
 					printf("[BlockC] BlockC cannot find the intersection with the provided coordinates\n");
 					exit(EXIT_FAILURE);
 				}
+				// increment traffic
 				block[idx].traffic++;
 				if (msg.car_info.car.direction == North || msg.car_info.car.direction == South) {
 					car_response.signal = block[idx].ns_sig;
 				} else {
 					car_response.signal = block[idx].ew_sig;
 				}
+				// reset traffic if light is green
 				if (car_response.signal == 0) {
 					block[idx].traffic = 0;
 				}
@@ -172,8 +172,8 @@ int main(int argc, char **argv)
 			case UPDATE_PRIO_MSG_TYPE:
 				idx = find_block_pid(block, info.pid);
 				block[idx].ew_sig = msg.cur_state.state;
-				block[idx].ns_sig = (msg.init_data.state + 1) % 2;
-				// Rudimentary scaling for traffic priorities
+				block[idx].ns_sig = (msg.cur_state.state + 1) % 2;
+				// update the priority based off traffic at intersection
 				if (block[idx].traffic > 20) {
 					block[idx].priority = 5;
 				} else if (block[idx].traffic > 15){

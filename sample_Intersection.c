@@ -33,9 +33,6 @@ void *grabber(void *);
 // Function pointer for auto process terminator thread.
 void *auto_terminator(void *);
 
-// Function pointer for auto process terminator thread.
-void *auto_terminator(void *);
-
 int main(int argc, char *argv[]){
 
 	// Create an auto terminator thread.
@@ -78,19 +75,17 @@ int main(int argc, char *argv[]){
 	return 0;
 }
 
+// helper function for duration
 int get_duration(int priority)
 {
 	if(priority < 1){
 		printf("[In] get_duration priority is 0 or -'ve\n");
 		return 0;
-	}else{
-		printf("[In] Priority received is: %d\n", priority);
 	}
-  
-	return (20 / priority);
-
+	return (3 * priority);
 }
 
+// function pointer for east/west state
 void *east_west(void *arg)
 {
 	while(1)
@@ -111,6 +106,7 @@ void *east_west(void *arg)
 	}
 }
 
+// function pointer for north/south state
 void *north_south(void *arg)
 {
 	while(1)
@@ -133,53 +129,34 @@ void *north_south(void *arg)
 
 void *grabber(void *arg){
 
-	int ret_code, coid;
-	ret_code = pthread_mutex_lock(&mutex);
+	int coid;
+	pthread_mutex_lock(&mutex);
 
 	coordinates_t *args = (coordinates_t *) arg;
 
+	// Acquire connection id from the server's name.
+	coid = name_open(CTRL_SERVER_NAME, 0);
 
-	if(ret_code == EOK){
-		// Acquire connection id from the server's name.
-		coid = name_open(CTRL_SERVER_NAME, 0);
+	get_prio_msg_t prio_msg = {.type = GET_PRIO_MSG_TYPE, .coordinates.row = args->row, .coordinates.col= args->col, .state = state};
+	get_prio_resp_t prio_resp;
 
-		get_prio_msg_t prio_msg = {.type = GET_PRIO_MSG_TYPE, .coordinates.row = args->row, .coordinates.col= args->col, .state = state};
+	// Send request to block controller asking for a priority for this intersection.
+	MsgSend(coid, &prio_msg, sizeof(prio_msg), &prio_resp, sizeof(prio_resp));
+
+	// Set the priority to the value obtained from the block controller.
+	priority = prio_resp.priority;
+	pthread_mutex_unlock(&mutex);
+
+	while(1){
+		pthread_mutex_lock(&mutex);
+		// Update controller on current state and ask for an updated priority.
 		update_prio_msg_t update_msg = {.type = UPDATE_PRIO_MSG_TYPE, .state = state};
-		get_prio_resp_t prio_resp;
-
-		// Send request to block controller asking for a priority for this intersection.
-		MsgSend(coid, &prio_msg, sizeof(prio_msg), &prio_resp, sizeof(prio_resp));
-
+		MsgSend(coid, &update_msg, sizeof(update_msg), &prio_resp, sizeof(prio_resp));
 		// Set the priority to the value obtained from the block controller.
 		priority = prio_resp.priority;
-		ret_code = pthread_mutex_unlock(&mutex);
-
-		if(ret_code != EOK){
-			printf("pthread_mutex_unlock() failed %s\n", strerror(ret_code));
-		}
-		while(1){
-
-			int ret_code;
-			ret_code = pthread_mutex_lock(&mutex);
-			if(ret_code == EOK){
-				// Obtain traffic count info somehow...
-				// Send traffic count to block controller and receive back a priority.
-				MsgSend(coid, &update_msg, sizeof(update_msg), &prio_resp, sizeof(prio_resp));
-
-				// Set the priority to the value obtained from the block controller.
-				priority = prio_resp.priority;
-				ret_code = pthread_mutex_unlock(&mutex);
-				if(ret_code != EOK){
-					printf("pthread_mutex_unlock() failed %s\n", strerror(ret_code));
-				}
-			}
-			else{
-				printf("pthread_mutex_unlock() failed %s\n", strerror(ret_code));
-			}
-		}
-	}else{
-		printf("pthread_mutex_unlock() failed %s\n", strerror(ret_code));
+		pthread_mutex_unlock(&mutex);
 	}
+
 }
 
 void *auto_terminator(void* arg) {

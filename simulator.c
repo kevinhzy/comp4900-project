@@ -43,8 +43,7 @@ int main(int argc, char **argv) {
 	char *argsForCtrl[] = {"sample_BlockController", itoa(INTERSECTIONS, inter_count_buff, 10), itoa(WIDTH_SIZE, width_buff, 10), NULL};
 	if((pid_ = spawn("/tmp/sample_BlockController", 0, NULL, &inherit, argsForCtrl, environ))==-1){
 		printf("[Sim] Failed to spawn Block Controller.\n");
-	}else{
-		printf("[Sim] Succesfully spawned Block Controller\n");
+		exit(EXIT_FAILURE);
 	}
   
 	// ------------------------
@@ -59,8 +58,7 @@ int main(int argc, char **argv) {
 		char *args[] = {"sample_Intersection",itoa(r_coordinate, r_buff, 10),itoa(c_coordinate, c_buff, 10), NULL};
 		if((pid_ = spawn("/tmp/sample_Intersection", 0, NULL, &inherit, args, environ))==-1){
 			printf("[Sim] Failed to spawn intersection assigned location (%d, %d) | PID: %d\n",r_coordinate,c_coordinate, pid_);
-		}else{
-			printf("[Sim] Succesfully spawned intersection with location (%d, %d) | PID: %d\n",r_coordinate,c_coordinate, pid_);
+			exit(EXIT_FAILURE);
 		}
 	}
 
@@ -93,15 +91,6 @@ int main(int argc, char **argv) {
 		pthread_join(threadID[i], NULL);
 	}
 
-	// Currently, the cars fall off the map almost instantly, resulting
-	// in the program finishing almost instantly and not allowing much time
-	// to view the communications that occur between the intersections and
-	// controller. This sleep allows for longer communications between the two.
-
-	printf("Main will sleep for a little...\n");
-	sleep(30);
-	printf("Main is done sleeping\n");
-
 	return 0;
 }
 
@@ -132,10 +121,12 @@ int off_grid(coordinates_t coordinates, int new_dir){
 	return 0;
 }
 
+// direction control helper variables
 enum dirs opposite_direction_of[] = {South, West, North, East};
 int row_increment[] = {-1, 0, 0, 1};
 int col_increment[] = {0, -1, 1, 0};
 
+// function pointer for car logic
 void *func_car(void *arg){
 
 	int server_coid;
@@ -156,8 +147,6 @@ void *func_car(void *arg){
 			printf("[Sim] car %d could not send info to the blockController\n", car->id);
 			exit(EXIT_FAILURE);
 		};
-    
-		printf("[Sim] car%d finds (%d, %d)\n", car->id, car->coordinates.row, car->coordinates.col);
 
 		//car's logic
 		if(car_info_resp.signal==0){ //green light for car
@@ -169,7 +158,7 @@ void *func_car(void *arg){
 			while(new_dir == opposite_direction_of[old_dir]) {
 				new_dir = rand() % 4;
 			}
-
+			car->direction = new_dir;
 			printf("[Sim] car%d at (%d, %d) has old_dir: %d & new_dir: %d\n", car->id, car->coordinates.row, car->coordinates.col, old_dir, new_dir);
 
 			if (off_grid(car->coordinates, new_dir))
@@ -186,7 +175,7 @@ void *func_car(void *arg){
 				printf("[Sim] car%d moved from (%d, %d) to (%d, %d)\n", car->id, old_row, old_col, car->coordinates.row, car->coordinates.col);
 			}
 		}
-		else {
+		else { // red light, wait and check again
 			printf("[Sim] car%d waiting at red light\n", car->id);
 			sleep(1);
 		}
